@@ -1,0 +1,266 @@
+@page "/customers"
+@rendermode InteractiveServer
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+@using IPSDesk.Services
+@inject ToastService ToastService
+
+<PageTitle>Customers - Diamond ISP</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin-bottom: 0;">Customers</h1>
+        </div>
+        <button class="btn-primary" @onclick="ShowAddForm">Add Customer</button>
+    </div>
+</div>
+
+@if (isFormVisible)
+{
+    <div class="modal-overlay">
+        <div class="modal-content" style="animation: fadeIn 0.3s;">
+            <div class="modal-header">
+                <h2>Add New Customer</h2>
+                <button type="button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 0;" @onclick="HideForm">&times;</button>
+            </div>
+            
+            <EditForm Model="@currentCustomer" OnValidSubmit="SaveCustomer" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+                <DataAnnotationsValidator />
+                
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label>Connection ID <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="currentCustomer.ConnectionId" class="form-control" />
+                            <ValidationMessage For="@(() => currentCustomer.ConnectionId)" />
+                        </div>
+                        <div>
+                            <label>Full Name <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="currentCustomer.Name" class="form-control" placeholder="e.g. John Doe" />
+                            <ValidationMessage For="@(() => currentCustomer.Name)" />
+                        </div>
+                        <div>
+                            <label>CNIC <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="currentCustomer.Cnic" class="form-control" placeholder="e.g. 12345-1234567-1" />
+                            <ValidationMessage For="@(() => currentCustomer.Cnic)" />
+                        </div>
+                        <div>
+                            <label>Phone Number <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="currentCustomer.Phone" class="form-control" placeholder="e.g. 0300-1234567" />
+                            <ValidationMessage For="@(() => currentCustomer.Phone)" />
+                        </div>
+                        <div>
+                            <label>WhatsApp</label>
+                            <InputText @bind-Value="currentCustomer.WhatsApp" class="form-control" placeholder="e.g. 0300-1234567" />
+                            <ValidationMessage For="@(() => currentCustomer.WhatsApp)" />
+                        </div>
+                        <div>
+                            <label>Email Address</label>
+                            <InputText @bind-Value="currentCustomer.Email" class="form-control" placeholder="e.g. email@example.com" />
+                            <ValidationMessage For="@(() => currentCustomer.Email)" />
+                        </div>
+                        <div>
+                            <label>Select Package <span style="color: red;">*</span></label>
+                            <InputSelect @bind-Value="currentCustomer.CurrentPackageId" class="form-control">
+                                <option value="">-- Select Package --</option>
+                                @if (packages != null)
+                                {
+                                    @foreach (var pkg in packages)
+                                    {
+                                        <option value="@pkg.Id">@pkg.Name (Rs. @pkg.MonthlyPrice)</option>
+                                    }
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => currentCustomer.CurrentPackageId)" />
+                        </div>
+                        <div>
+                            <label>Connection Date</label>
+                            <InputDate @bind-Value="currentCustomer.ConnectionDate" class="form-control" />
+                            <ValidationMessage For="@(() => currentCustomer.ConnectionDate)" />
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <label>Address <span style="color: red;">*</span></label>
+                            <InputTextArea @bind-Value="currentCustomer.Address" class="form-control" rows="2" />
+                            <ValidationMessage For="@(() => currentCustomer.Address)" />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" @onclick="HideForm">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Customer</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div class="glass-panel">
+    <table class="premium-table">
+        <thead>
+            <tr>
+                <th>Conn ID</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Package</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (customers == null)
+            {
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading...</td>
+                </tr>
+            }
+            else if (!customers.Any())
+            {
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">No customers found.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var customer in displayedCustomers)
+                {
+                    <tr>
+                        <td style="font-weight: 500;">@customer.ConnectionId</td>
+                        <td>@customer.Name</td>
+                        <td>@customer.Phone</td>
+                        <td>@(customer.CurrentPackage?.Name ?? "N/A")</td>
+                        <td style="color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--text-primary)")">
+                            Rs. @customer.CurrentBalance.ToString("N0")
+                        </td>
+                        <td>
+                            <span style="color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)")">
+                                @(customer.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => ViewProfile(customer.Id)">Profile</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    @if (totalPages > 1)
+    {
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-glass); padding-top: 16px;">
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">
+                Showing @(((currentPage - 1) * pageSize) + 1) to @(Math.Min(currentPage * pageSize, customers?.Count ?? 0)) of @(customers?.Count ?? 0) entries
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" disabled="@(currentPage == 1)" @onclick="() => GoToPage(currentPage - 1)">Previous</button>
+                
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    int pageNum = i;
+                    if (pageNum == currentPage)
+                    {
+                        <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                    }
+                    else
+                    {
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                    }
+                }
+                
+                <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" disabled="@(currentPage == totalPages)" @onclick="() => GoToPage(currentPage + 1)">Next</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Customer>? customers;
+    private List<Package>? packages;
+    private bool isFormVisible = false;
+    private Customer currentCustomer = new();
+
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => customers == null ? 0 : (int)Math.Ceiling((double)customers.Count / pageSize);
+    private IEnumerable<Customer> displayedCustomers => customers?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Array.Empty<Customer>();
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        customers = await DbContext.Customers
+            .Include(c => c.CurrentPackage)
+            .OrderByDescending(c => c.ConnectionDate)
+            .ToListAsync();
+            
+        packages = await DbContext.Packages.Where(p => p.IsActive).ToListAsync();
+    }
+
+    private async Task ShowAddForm()
+    {
+        string newConnId = "1";
+        
+        var allCustomers = await DbContext.Customers.ToListAsync();
+        if (allCustomers.Any())
+        {
+            var maxId = allCustomers
+                .Select(c => int.TryParse(c.ConnectionId, out int val) ? val : 0)
+                .Max();
+                
+            if (maxId > 0)
+            {
+                newConnId = (maxId + 1).ToString();
+            }
+            else
+            {
+                newConnId = (allCustomers.Count + 1).ToString();
+            }
+        }
+        
+        currentCustomer = new Customer { ConnectionId = newConnId };
+        isFormVisible = true;
+    }
+
+    private void HideForm()
+    {
+        isFormVisible = false;
+    }
+
+    private async Task SaveCustomer()
+    {
+        if (currentCustomer.Id == Guid.Empty)
+        {
+            currentCustomer.Id = Guid.NewGuid();
+            // User edits ConnectionDate from form, so no need to overwrite it here
+            // TODO: In Phase 4, we'll link this to the logged in employee
+            DbContext.Customers.Add(currentCustomer);
+        }
+
+        await DbContext.SaveChangesAsync();
+        isFormVisible = false;
+        ToastService.ShowSuccess("Customer saved successfully!");
+        await LoadData();
+    }
+    
+    private void ViewProfile(Guid id)
+    {
+        NavManager.NavigateTo($"/customers/profile/{id}");
+    }
+}

@@ -1,0 +1,76 @@
+@page "/reports"
+@rendermode InteractiveServer
+@using IPSDesk.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Reports - Diamond ISP</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px;">
+    <h1>Reports & Accountability</h1>
+    <p style="color: var(--text-secondary);">View collection history and performance by employee.</p>
+</div>
+
+<div class="glass-panel">
+    <h2>Employee Collections</h2>
+    @if (collections == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!collections.Any())
+    {
+        <p>No collection data found.</p>
+    }
+    else
+    {
+        <table class="premium-table">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Total Payments Collected</th>
+                    <th>Total Amount (Rs.)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in collections)
+                {
+                    <tr>
+                        <td style="font-weight: 500;">@c.EmployeeName</td>
+                        <td>@c.PaymentsCount</td>
+                        <td style="color: var(--accent-success); font-weight: 600;">Rs. @c.TotalAmount.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<EmployeeCollection>? collections;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Currently grouping by CollectedById. 
+        // Note: For a newly seeded DB where payments might have null CollectedById, we handle that.
+        var payments = await DbContext.Payments
+            .ToListAsync();
+            
+        collections = payments
+            .GroupBy(p => p.CreatedById)
+            .Select(g => new EmployeeCollection
+            {
+                EmployeeName = g.First().CreatedByName ?? "System / Unknown Employee",
+                PaymentsCount = g.Count(),
+                TotalAmount = g.Sum(p => p.AmountCollected)
+            })
+            .OrderByDescending(c => c.TotalAmount)
+            .ToList();
+    }
+    
+    private class EmployeeCollection
+    {
+        public string EmployeeName { get; set; } = "";
+        public int PaymentsCount { get; set; }
+        public decimal TotalAmount { get; set; }
+    }
+}

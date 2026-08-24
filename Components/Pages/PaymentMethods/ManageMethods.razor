@@ -1,0 +1,146 @@
+@page "/payment-methods"
+@rendermode InteractiveServer
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Payment Methods - Diamond ISP</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1>Payment Methods</h1>
+            <p style="color: var(--text-secondary);">Manage available payment methods (Cash, Bank, Easypaisa, etc.).</p>
+        </div>
+        <button class="btn-primary" @onclick="ShowAddForm">+ New Method</button>
+    </div>
+</div>
+
+@if (isFormVisible)
+{
+    <div class="glass-panel" style="margin-bottom: 24px; animation: fadeIn 0.3s;">
+        <h2>@(currentMethod.Id == Guid.Empty ? "Add Payment Method" : "Edit Payment Method")</h2>
+        <EditForm Model="@currentMethod" OnValidSubmit="SaveMethod">
+            <DataAnnotationsValidator />
+            
+            <div style="display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 400px;">
+                <div>
+                    <label>Method Name</label>
+                    <InputText @bind-Value="currentMethod.Name" class="form-control" placeholder="e.g. JazzCash" />
+                </div>
+                <div>
+                    <label>Status</label>
+                    <div style="padding-top: 10px;">
+                        <InputCheckbox @bind-Value="currentMethod.IsActive" /> Active
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <button type="submit" class="btn-primary">Save Method</button>
+                <button type="button" class="btn-secondary" @onclick="HideForm">Cancel</button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+<div class="glass-panel">
+    @if (methods == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!methods.Any())
+    {
+        <p>No payment methods found.</p>
+    }
+    else
+    {
+        <table class="premium-table">
+            <thead>
+                <tr>
+                    <th>Method Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var method in methods)
+                {
+                    <tr>
+                        <td style="font-weight: 500;">@method.Name</td>
+                        <td>
+                            <span style="color: @(method.IsActive ? "var(--accent-success)" : "var(--accent-danger)")">
+                                @(method.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => EditMethod(method)">Edit</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<PaymentMethod>? methods;
+    private bool isFormVisible = false;
+    private PaymentMethod currentMethod = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMethods();
+    }
+
+    private async Task LoadMethods()
+    {
+        methods = await DbContext.PaymentMethods.OrderBy(m => m.Name).ToListAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        currentMethod = new PaymentMethod();
+        isFormVisible = true;
+    }
+
+    private void EditMethod(PaymentMethod method)
+    {
+        currentMethod = new PaymentMethod
+        {
+            Id = method.Id,
+            Name = method.Name,
+            IsActive = method.IsActive
+        };
+        isFormVisible = true;
+    }
+
+    private void HideForm()
+    {
+        isFormVisible = false;
+    }
+
+    private async Task SaveMethod()
+    {
+        if (currentMethod.Id == Guid.Empty)
+        {
+            currentMethod.Id = Guid.NewGuid();
+            DbContext.PaymentMethods.Add(currentMethod);
+        }
+        else
+        {
+            var existing = await DbContext.PaymentMethods.FindAsync(currentMethod.Id);
+            if (existing != null)
+            {
+                existing.Name = currentMethod.Name;
+                existing.IsActive = currentMethod.IsActive;
+                DbContext.PaymentMethods.Update(existing);
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+        isFormVisible = false;
+        await LoadMethods();
+    }
+}

@@ -1,0 +1,49 @@
+@using IPSDesk.Services
+@inject ToastService ToastService
+@implements IDisposable
+@rendermode InteractiveServer
+
+<div class="toast-container">
+    @foreach (var toast in toasts)
+    {
+        <div @key="toast.Id" class="toast-message toast-@toast.Level.ToString().ToLower()">
+            @if (toast.Level == ToastLevel.Success)
+            {
+                <span style="margin-right: 8px;">✅</span>
+            }
+            else if (toast.Level == ToastLevel.Error)
+            {
+                <span style="margin-right: 8px;">❌</span>
+            }
+            @toast.Message
+        </div>
+    }
+</div>
+
+@code {
+    private List<ToastMessage> toasts = new();
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    private void ShowToast(ToastMessage toast)
+    {
+        toasts.Add(toast);
+        InvokeAsync(StateHasChanged);
+
+        // Auto remove after 3 seconds
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            toasts.Remove(toast);
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= ShowToast;
+    }
+}

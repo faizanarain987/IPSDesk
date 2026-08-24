@@ -1,0 +1,305 @@
+@page "/employees"
+@rendermode InteractiveServer
+@using IPSDesk.Models
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using IPSDesk.Services
+@inject UserManager<ApplicationUser> UserManager
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Employees / Users - Diamond ISP</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin-bottom: 0;">Employees</h1>
+        </div>
+        <button class="btn-primary" @onclick="ShowAddForm">Add Employee</button>
+    </div>
+</div>
+
+@if (isFormVisible)
+{
+    <div class="modal-overlay">
+        <div class="modal-content" style="animation: fadeIn 0.3s;">
+            <div class="modal-header">
+                <h2>@(isEditMode ? "Edit Employee" : "Add New Employee")</h2>
+                <button type="button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 0;" @onclick="HideForm">&times;</button>
+            </div>
+            
+            <EditForm Model="@userModel" OnValidSubmit="SaveUser" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+                <DataAnnotationsValidator />
+                
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div style="color: red; margin-bottom: 15px; font-weight: 500;">@errorMessage</div>
+                    }
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+                        <div>
+                            <label>Full Name <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="userModel.FullName" class="form-control" placeholder="e.g. Ali Khan" />
+                            <ValidationMessage For="@(() => userModel.FullName)" />
+                        </div>
+                        <div>
+                            <label>Email Address <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="userModel.Email" type="email" class="form-control" placeholder="e.g. ali@ipsdesk.com" />
+                            <ValidationMessage For="@(() => userModel.Email)" />
+                        </div>
+                        <div>
+                            <label>Phone Number <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="userModel.PhoneNumber" class="form-control" placeholder="e.g. 0300-1234567" />
+                            <ValidationMessage For="@(() => userModel.PhoneNumber)" />
+                        </div>
+                        
+                        <div>
+                            <label>CNIC <span style="color: red;">*</span></label>
+                            <InputText @bind-Value="userModel.Cnic" class="form-control" placeholder="e.g. 12345-1234567-1" />
+                            <ValidationMessage For="@(() => userModel.Cnic)" />
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 8px;">Employee Status</label>
+                            <label class="toggle-switch">
+                                <InputCheckbox @bind-Value="userModel.IsActive" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span style="margin-left: 12px; font-weight: 500; vertical-align: super;">
+                                @(userModel.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </div>
+                        
+                        @if (!isEditMode)
+                        {
+                            <div>
+                                <label>Password <span style="color: red;">*</span></label>
+                                <InputText @bind-Value="userModel.Password" type="password" class="form-control" placeholder="Enter secure password" />
+                                <ValidationMessage For="@(() => userModel.Password)" />
+                            </div>
+                        }
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" @onclick="HideForm">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Employee</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div class="glass-panel">
+    <table class="premium-table">
+        <thead>
+            <tr>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>CNIC</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (users == null)
+            {
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading employees...</td>
+                </tr>
+            }
+            else if (!users.Any())
+            {
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">
+                        No employees found. Click "Add Employee" to create one.
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var user in users)
+                {
+                    <tr>
+                        <td style="font-weight: 500;">@user.FullName</td>
+                        <td>@user.Email</td>
+                        <td>@user.PhoneNumber</td>
+                        <td>@(string.IsNullOrEmpty(user.Cnic) ? "N/A" : user.Cnic)</td>
+                        <td>
+                            <span style="color: @(user.IsActive ? "var(--accent-success)" : "var(--text-secondary)");">
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-icon btn-view" style="color: var(--text-primary);" @onclick="() => ViewProfile(user.Id)" title="View Profile">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                                <button class="btn-icon btn-edit" style="color: var(--text-primary);" @onclick="() => ShowEditForm(user)" title="Edit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </button>
+                                <button class="btn-icon btn-delete" style="color: var(--text-primary);" @onclick="() => SoftDeleteUser(user)" title="Delete">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<ApplicationUser>? users;
+    private bool isFormVisible = false;
+    private bool isEditMode = false;
+    private UserViewModel userModel = new();
+    private string errorMessage = "";
+    private ApplicationUser? editingUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        users = await UserManager.Users
+            .Where(u => !u.IsDeleted)
+            .OrderBy(u => u.FullName)
+            .ToListAsync();
+    }
+
+    private void ViewProfile(string userId)
+    {
+        NavigationManager.NavigateTo($"/employee/{userId}");
+    }
+
+    private void ShowAddForm()
+    {
+        userModel = new UserViewModel();
+        isEditMode = false;
+        errorMessage = "";
+        isFormVisible = true;
+    }
+
+    private void ShowEditForm(ApplicationUser user)
+    {
+        editingUser = user;
+        userModel = new UserViewModel
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            Email = user.Email ?? "",
+            PhoneNumber = user.PhoneNumber ?? "",
+            Cnic = user.Cnic ?? "",
+            IsActive = user.IsActive
+        };
+        isEditMode = true;
+        errorMessage = "";
+        isFormVisible = true;
+    }
+
+    private void HideForm()
+    {
+        isFormVisible = false;
+    }
+
+    private async Task SaveUser()
+    {
+        errorMessage = "";
+        
+        if (isEditMode && editingUser != null)
+        {
+            editingUser.FullName = userModel.FullName;
+            editingUser.Email = userModel.Email;
+            editingUser.UserName = userModel.Email; // UserName is typically Email in Identity
+            editingUser.PhoneNumber = userModel.PhoneNumber;
+            editingUser.Cnic = userModel.Cnic;
+            editingUser.IsActive = userModel.IsActive;
+            
+            var result = await UserManager.UpdateAsync(editingUser);
+            if (result.Succeeded)
+            {
+                ToastService.ShowSuccess("Employee updated successfully");
+                HideForm();
+                await LoadUsers();
+            }
+            else
+            {
+                errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(userModel.Password))
+            {
+                errorMessage = "Password is required when creating a new employee.";
+                return;
+            }
+            
+            var newUser = new ApplicationUser
+            {
+                FullName = userModel.FullName,
+                Email = userModel.Email,
+                UserName = userModel.Email, // We use Email as UserName
+                PhoneNumber = userModel.PhoneNumber,
+                Cnic = userModel.Cnic,
+                IsActive = userModel.IsActive
+            };
+            
+            var result = await UserManager.CreateAsync(newUser, userModel.Password!);
+            if (result.Succeeded)
+            {
+                ToastService.ShowSuccess("Employee created successfully");
+                HideForm();
+                await LoadUsers();
+            }
+            else
+            {
+                errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+            }
+        }
+    }
+
+    private async Task SoftDeleteUser(ApplicationUser user)
+    {
+        user.IsDeleted = true;
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            ToastService.ShowSuccess("Employee deleted successfully");
+            await LoadUsers();
+        }
+        else
+        {
+            ToastService.ShowError("Error deleting employee");
+        }
+    }
+
+    public class UserViewModel
+    {
+        public string? Id { get; set; }
+        
+        [Required(ErrorMessage = "Full Name is required")]
+        public string FullName { get; set; } = "";
+        
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid Email Address")]
+        public string Email { get; set; } = "";
+        
+        [Required(ErrorMessage = "Phone Number is required")]
+        public string PhoneNumber { get; set; } = "";
+        
+        // Password is only required when creating a new user
+        public string? Password { get; set; }
+        
+        [Required(ErrorMessage = "CNIC is required")]
+        public string Cnic { get; set; } = "";
+        
+        public bool IsActive { get; set; } = true;
+    }
+}

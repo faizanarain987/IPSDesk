@@ -1,0 +1,141 @@
+@page "/customers/profile/{Id:guid}"
+@rendermode InteractiveServer
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+
+<PageTitle>Customer Profile - Diamond ISP</PageTitle>
+
+@if (customer == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="glass-panel" style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 style="margin-bottom: 4px;">@customer.Name</h1>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">Connection ID: @customer.ConnectionId | Joined: @customer.ConnectionDate.ToString("MMM dd, yyyy")</p>
+                <div style="display: flex; gap: 24px;">
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Status</span>
+                        <div style="color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 500;">
+                            @(customer.IsActive ? "Active" : "Inactive")
+                        </div>
+                    </div>
+                    <div> 
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Phone</span>
+                        <div>@customer.Phone</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Current Package</span>
+                        <div style="font-weight: 500; color: var(--accent-primary);">@(customer.CurrentPackage?.Name ?? "None")</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Current Balance</span>
+                        <div style="font-weight: 600; font-size: 1.1rem; color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)");">
+                            Rs. @customer.CurrentBalance.ToString("N0")
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary" @onclick='() => NavManager.NavigateTo($"/payments/new?connectionId={customer.ConnectionId}")'>Record Payment</button>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div class="glass-panel">   
+            <h2>Payment History</h2>
+            @if (!customer.Payments.Any())
+            {
+                <p style="color: var(--text-secondary);">No payments recorded yet.</p>
+            }
+            else
+            {
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var payment in customer.Payments.OrderByDescending(p => p.PaymentDate))
+                        {
+                            <tr>
+                                <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
+                                <td>@payment.PaymentType</td>
+                                <td style="color: var(--accent-success);">Rs. @payment.AmountCollected.ToString("N0")</td>
+                                <td>@(payment.PaymentMethod?.Name ?? "Unknown")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="glass-panel">
+            <h2>Monthly Package History</h2>
+            @if (!customer.MonthlyHistory.Any())
+            {
+                <p style="color: var(--text-secondary);">No monthly history recorded yet.</p>
+            }
+            else
+            {
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Package</th>
+                            <th>Status</th>
+                            <th>Remaining</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var history in customer.MonthlyHistory.OrderByDescending(h => h.RenewalDate))
+                        {
+                            <tr>
+                                <td>@history.BillingMonth</td>
+                                <td>@(history.Package?.Name ?? "Unknown")</td>
+                                <td>
+                                    <span style="color: @(history.PaymentStatus == "Paid" ? "var(--accent-success)" : "var(--accent-danger)")">
+                                        @history.PaymentStatus
+                                    </span>
+                                </td>
+                                <td>Rs. @history.RemainingBalance.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Customer? customer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        customer = await DbContext.Customers
+            .Include(c => c.CurrentPackage)
+            .Include(c => c.Payments)
+                .ThenInclude(p => p.PaymentMethod)
+            .Include(c => c.MonthlyHistory)
+                .ThenInclude(h => h.Package)
+            .FirstOrDefaultAsync(c => c.Id == Id);
+            
+        if (customer == null)
+        {
+            NavManager.NavigateTo("/customers");
+        }
+    }
+}

@@ -1,0 +1,134 @@
+@page "/employee/{Id}"
+@rendermode InteractiveServer
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+
+<PageTitle>Employee Profile - Diamond ISP</PageTitle>
+
+@if (employee == null)
+{
+    <p style="color: var(--text-secondary); text-align: center; padding: 40px;">Loading employee profile...</p>
+}
+else
+{
+    <div class="glass-panel" style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 style="margin-bottom: 4px;">@employee.FullName</h1>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">System ID: @employee.Id</p>
+                
+                <div style="display: flex; gap: 32px;">
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Status</span>
+                        <div style="color: @(employee.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 500;">
+                            @(employee.IsActive ? "Active Employee" : "Inactive")
+                        </div>
+                    </div>
+                    <div> 
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Email Address</span>
+                        <div>@(string.IsNullOrEmpty(employee.Email) ? "N/A" : employee.Email)</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Phone Number</span>
+                        <div>@(string.IsNullOrEmpty(employee.PhoneNumber) ? "N/A" : employee.PhoneNumber)</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">CNIC</span>
+                        <div>@(string.IsNullOrEmpty(employee.Cnic) ? "N/A" : employee.Cnic)</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Total Collections Recorded</span>
+                        <div style="font-weight: 600; color: var(--accent-primary);">
+                            @paymentsCollected.Count
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-secondary" @onclick='() => NavManager.NavigateTo("/employees")'>Back to List</button>
+        </div>
+    </div>
+
+    <div class="glass-panel">
+        <h2 style="margin-top: 0; margin-bottom: 16px;">Collection History</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem;">
+            Payments collected and recorded in the system by this employee.
+        </p>
+
+        @if (!paymentsCollected.Any())
+        {
+            <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+                This employee has not recorded any payments yet.
+            </div>
+        }
+        else
+        {
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Receipt #</th>
+                        <th>Customer</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in paymentsCollected.OrderByDescending(p => p.PaymentDate))
+                    {
+                        <tr>
+                            <td>@payment.PaymentDate.ToString("MMM dd, yyyy hh:mm tt")</td>
+                            <td>
+                                <a href="/payments/receipt/@payment.Id" style="color: var(--accent-primary); text-decoration: none;">@payment.ReceiptNumber</a>
+                            </td>
+                            <td>
+                                @if (payment.Customer != null)
+                                {
+                                    <a href="/customers/profile/@payment.Customer.Id" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">
+                                        @payment.Customer.Name
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span style="color: var(--text-secondary);">Unknown</span>
+                                }
+                            </td>
+                            <td>@payment.PaymentType</td>
+                            <td>@(payment.PaymentMethod?.Name ?? "Unknown")</td>
+                            <td style="color: var(--accent-success); font-weight: 500;">Rs. @payment.AmountCollected.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    private ApplicationUser? employee;
+    private List<Payment> paymentsCollected = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get the employee directly from user manager (ignoring query filters in case we want to view a soft deleted user's history)
+        employee = await UserManager.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == Id);
+
+        if (employee != null)
+        {
+            // Fetch payments recorded by this employee
+            paymentsCollected = await DbContext.Payments
+                .Include(p => p.Customer)
+                .Include(p => p.PaymentMethod)
+                .Where(p => p.CreatedById == employee.Id)
+                .ToListAsync();
+        }
+    }
+}

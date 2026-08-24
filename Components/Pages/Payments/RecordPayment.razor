@@ -1,0 +1,153 @@
+@page "/payments/new"
+@rendermode InteractiveServer
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+
+<PageTitle>Record Payment - Diamond ISP</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px;">
+    <h1>Record Payment</h1>
+    <p style="color: var(--text-secondary);">Enter Connection ID to find the customer and record a payment.</p>
+    
+    <div style="display: flex; gap: 12px; margin-top: 16px; max-width: 500px;">
+        <input type="text" @bind="searchConnectionId" class="form-control" placeholder="Enter Connection ID (e.g. CONN-1001)" />
+        <button class="btn-primary" @onclick="SearchCustomer" style="white-space: nowrap;">Find Customer</button>
+    </div>
+    @if (searchError)
+    {
+        <p style="color: var(--accent-danger); margin-top: 8px;">Customer not found.</p>
+    }
+</div>
+
+@if (customer != null)
+{
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div class="glass-panel" style="animation: fadeIn 0.3s;">
+            <h2>Customer Details</h2>
+            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Name:</span> <strong style="color: var(--text-primary);">@customer.Name</strong></div>
+            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Package:</span> <strong style="color: var(--accent-primary);">@(customer.CurrentPackage?.Name ?? "None")</strong></div>
+            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Monthly Fee:</span> <strong>Rs. @(customer.CurrentPackage?.MonthlyPrice.ToString("N0") ?? "0")</strong></div>
+            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Current Balance (Outstanding):</span> <strong style="color: var(--accent-danger);">Rs. @customer.CurrentBalance.ToString("N0")</strong></div>
+        </div>
+
+        <div class="glass-panel" style="animation: fadeIn 0.3s;">
+            <h2>Payment Entry</h2>
+            <EditForm Model="@paymentModel" OnValidSubmit="ProcessPayment">
+                <DataAnnotationsValidator />
+                
+                <div style="margin-bottom: 16px;">
+                    <label>Amount Collected (Rs.)</label>
+                    <InputNumber @bind-Value="paymentModel.AmountCollected" class="form-control" />
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label>Payment Method</label>
+                    <InputSelect @bind-Value="paymentModel.PaymentMethodId" class="form-control">
+                        <option value="">-- Select Method --</option>
+                        @if (paymentMethods != null)
+                        {
+                            @foreach (var pm in paymentMethods)
+                            {
+                                <option value="@pm.Id">@pm.Name</option>
+                            }
+                        }
+                    </InputSelect>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label>Billing Month</label>
+                    <InputText @bind-Value="paymentModel.BillingMonth" class="form-control" placeholder="e.g. August 2026" />
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%;">Process Payment</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ConnectionId { get; set; }
+
+    private string searchConnectionId = string.Empty;
+    private bool searchError = false;
+    private Customer? customer;
+    private Payment paymentModel = new();
+    private List<PaymentMethod>? paymentMethods;
+
+    protected override async Task OnInitializedAsync()
+    {
+        paymentMethods = await DbContext.PaymentMethods.Where(m => m.IsActive).ToListAsync();
+        
+        if (!string.IsNullOrEmpty(ConnectionId))
+        {
+            searchConnectionId = ConnectionId;
+            await SearchCustomer();
+        }
+        
+        paymentModel.BillingMonth = DateTime.Now.ToString("MMMM yyyy");
+    }
+
+    private async Task SearchCustomer()
+    {
+        searchError = false;
+        customer = await DbContext.Customers
+            .Include(c => c.CurrentPackage)
+            .FirstOrDefaultAsync(c => c.ConnectionId == searchConnectionId);
+            
+        if (customer == null)
+        {
+            searchError = true;
+        }
+    }
+
+    private async Task ProcessPayment()
+    {
+        if (customer == null || paymentModel.PaymentMethodId == Guid.Empty || paymentModel.AmountCollected <= 0) return;
+
+        // Determine Payment Type
+        decimal expectedFee = customer.CurrentPackage?.MonthlyPrice ?? 0;
+        if (paymentModel.AmountCollected >= expectedFee + customer.CurrentBalance)
+        {
+            paymentModel.PaymentType = "Full Payment";
+        }
+        else
+        {
+            paymentModel.PaymentType = "Partial Payment";
+        }
+
+        // Update Customer Balance
+        // Assuming balance is amount owed. 
+        // Adding the new month's fee, subtracting what was paid.
+        decimal remaining = (customer.CurrentBalance + expectedFee) - paymentModel.AmountCollected;
+        customer.CurrentBalance = remaining;
+        DbContext.Customers.Update(customer);
+
+        // Record History
+        var history = new MonthlyPackageHistory
+        {
+            CustomerId = customer.Id,
+            PackageId = customer.CurrentPackageId!.Value,
+            BillingMonth = paymentModel.BillingMonth,
+            PackagePrice = expectedFee,
+            AmountPaid = paymentModel.AmountCollected,
+            RemainingBalance = remaining,
+            PaymentStatus = remaining <= 0 ? "Paid" : "Partially Paid",
+            RenewalDate = DateTime.Now
+        };
+        DbContext.MonthlyPackageHistories.Add(history);
+
+        // Finalize Payment Record
+        paymentModel.CustomerId = customer.Id;
+        paymentModel.PaymentDate = DateTime.Now;
+        // paymentModel.CollectedById will be set when Auth is hooked up
+        DbContext.Payments.Add(paymentModel);
+
+        await DbContext.SaveChangesAsync();
+        
+        NavManager.NavigateTo($"/payments/receipt/{paymentModel.Id}");
+    }
+}
