@@ -1,8 +1,9 @@
 @page "/customers"
-@rendermode InteractiveServer
+
 @using IPSDesk.Data
 @using IPSDesk.Models
 @using Microsoft.EntityFrameworkCore
+@using System.ComponentModel.DataAnnotations
 @inject ApplicationDbContext DbContext
 @inject NavigationManager NavManager
 @using IPSDesk.Services
@@ -15,89 +16,14 @@
         <div>
             <h1 style="margin-bottom: 0;">Customers</h1>
         </div>
-        <button class="btn-primary" @onclick="ShowAddForm">Add Customer</button>
+        <div style="display: flex; gap: 16px; align-items: center;">
+            <input type="text" @bind="searchText" @bind:event="oninput" @bind:after="ResetPage" class="form-control" placeholder="Search by ID, Name or Phone..." style="min-width: 300px; padding: 8px 16px; border-radius: 9999px;" />
+            <button class="btn-primary" style="white-space: nowrap;" @onclick='() => NavManager.NavigateTo("/customers/add")'>Add Customer</button>
+        </div>
     </div>
 </div>
 
-@if (isFormVisible)
-{
-    <div class="modal-overlay">
-        <div class="modal-content" style="animation: fadeIn 0.3s;">
-            <div class="modal-header">
-                <h2>Add New Customer</h2>
-                <button type="button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 0;" @onclick="HideForm">&times;</button>
-            </div>
-            
-            <EditForm Model="@currentCustomer" OnValidSubmit="SaveCustomer" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
-                <DataAnnotationsValidator />
-                
-                <div class="modal-body">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <div>
-                            <label>Connection ID <span style="color: red;">*</span></label>
-                            <InputText @bind-Value="currentCustomer.ConnectionId" class="form-control" />
-                            <ValidationMessage For="@(() => currentCustomer.ConnectionId)" />
-                        </div>
-                        <div>
-                            <label>Full Name <span style="color: red;">*</span></label>
-                            <InputText @bind-Value="currentCustomer.Name" class="form-control" placeholder="e.g. John Doe" />
-                            <ValidationMessage For="@(() => currentCustomer.Name)" />
-                        </div>
-                        <div>
-                            <label>CNIC <span style="color: red;">*</span></label>
-                            <InputText @bind-Value="currentCustomer.Cnic" class="form-control" placeholder="e.g. 12345-1234567-1" />
-                            <ValidationMessage For="@(() => currentCustomer.Cnic)" />
-                        </div>
-                        <div>
-                            <label>Phone Number <span style="color: red;">*</span></label>
-                            <InputText @bind-Value="currentCustomer.Phone" class="form-control" placeholder="e.g. 0300-1234567" />
-                            <ValidationMessage For="@(() => currentCustomer.Phone)" />
-                        </div>
-                        <div>
-                            <label>WhatsApp</label>
-                            <InputText @bind-Value="currentCustomer.WhatsApp" class="form-control" placeholder="e.g. 0300-1234567" />
-                            <ValidationMessage For="@(() => currentCustomer.WhatsApp)" />
-                        </div>
-                        <div>
-                            <label>Email Address</label>
-                            <InputText @bind-Value="currentCustomer.Email" class="form-control" placeholder="e.g. email@example.com" />
-                            <ValidationMessage For="@(() => currentCustomer.Email)" />
-                        </div>
-                        <div>
-                            <label>Select Package <span style="color: red;">*</span></label>
-                            <InputSelect @bind-Value="currentCustomer.CurrentPackageId" class="form-control">
-                                <option value="">-- Select Package --</option>
-                                @if (packages != null)
-                                {
-                                    @foreach (var pkg in packages)
-                                    {
-                                        <option value="@pkg.Id">@pkg.Name (Rs. @pkg.MonthlyPrice)</option>
-                                    }
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="@(() => currentCustomer.CurrentPackageId)" />
-                        </div>
-                        <div>
-                            <label>Connection Date</label>
-                            <InputDate @bind-Value="currentCustomer.ConnectionDate" class="form-control" />
-                            <ValidationMessage For="@(() => currentCustomer.ConnectionDate)" />
-                        </div>
-                        <div style="grid-column: span 2;">
-                            <label>Address <span style="color: red;">*</span></label>
-                            <InputTextArea @bind-Value="currentCustomer.Address" class="form-control" rows="2" />
-                            <ValidationMessage For="@(() => currentCustomer.Address)" />
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" @onclick="HideForm">Cancel</button>
-                    <button type="submit" class="btn-primary">Save Customer</button>
-                </div>
-            </EditForm>
-        </div>
-    </div>
-}
+
 
 <div class="glass-panel">
     <table class="premium-table">
@@ -130,20 +56,33 @@
                 @foreach (var customer in displayedCustomers)
                 {
                     <tr>
-                        <td style="font-weight: 500;">@customer.ConnectionId</td>
-                        <td>@customer.Name</td>
-                        <td>@customer.Phone</td>
-                        <td>@(customer.CurrentPackage?.Name ?? "N/A")</td>
-                        <td style="color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--text-primary)")">
+                        <td style="font-weight: 500; color: #111827;">@customer.ConnectionId</td>
+                        <td style="color: #374151;">@customer.Name</td>
+                        <td style="color: #4B5563;">@customer.Phone</td>
+                        <td style="color: #4B5563;">@(customer.CurrentPackage?.Name ?? "N/A")</td>
+                        <td style="color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : (customer.CurrentBalance < 0 ? "var(--accent-success)" : "#4B5563"))">
                             Rs. @customer.CurrentBalance.ToString("N0")
                         </td>
                         <td>
-                            <span style="color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)")">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background-color: @(customer.IsActive ? "#D1FAE5" : "#FEE2E2"); color: @(customer.IsActive ? "#047857" : "#B91C1C"); border: 1px solid @(customer.IsActive ? "#34D399" : "#F87171");">
                                 @(customer.IsActive ? "Active" : "Inactive")
                             </span>
                         </td>
                         <td>
-                            <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => ViewProfile(customer.Id)">Profile</button>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="btn-icon btn-view" style="color: var(--text-primary);" @onclick="() => ViewProfile(customer.Id)" title="View Profile">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                </button>
+                                <button class="btn-icon btn-renew" style="color: var(--accent-success);" @onclick="() => ConfirmRenewCustomer(customer)" title="Renew Package (Bill Customer)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                </button>
+                                <button class="btn-icon btn-edit" style="color: var(--text-primary);" @onclick='() => NavManager.NavigateTo($"/customers/edit/{customer.Id}")' title="Edit Details">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </button>
+                                <button class="btn-icon btn-delete" style="color: var(--text-primary);" @onclick="() => ConfirmDeleteCustomer(customer)" title="Delete">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -155,7 +94,7 @@
     {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-glass); padding-top: 16px;">
             <div style="color: var(--text-secondary); font-size: 0.85rem;">
-                Showing @(((currentPage - 1) * pageSize) + 1) to @(Math.Min(currentPage * pageSize, customers?.Count ?? 0)) of @(customers?.Count ?? 0) entries
+                Showing @(filteredCustomers.Any() ? ((currentPage - 1) * pageSize) + 1 : 0) to @(Math.Min(currentPage * pageSize, filteredCustomers.Count())) of @(filteredCustomers.Count()) entries
             </div>
             <div style="display: flex; gap: 8px;">
                 <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" disabled="@(currentPage == 1)" @onclick="() => GoToPage(currentPage - 1)">Previous</button>
@@ -179,16 +118,62 @@
     }
 </div>
 
+@if (isDeleteModalVisible && customerToDelete != null)
+{
+    <div class="modal-overlay">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Delete Customer</h2>
+                <button type="button" @onclick="HideDeleteModal" class="modal-close-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div style="padding: 32px 24px; text-align: left;">
+                <p style="color: #6B7280; margin: 0; font-size: 1.05rem;">
+                    Are you sure you want to delete <strong style="color: #1F2937;">@customerToDelete.Name</strong>?
+                </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+                <button type="button" class="modal-cancel-btn" @onclick="HideDeleteModal">Cancel</button>
+                <button type="button" class="modal-delete-btn" @onclick="SoftDeleteCustomer">Delete</button>
+            </div>
+        </div>
+    </div>
+}
+
+
 @code {
     private List<Customer>? customers;
     private List<Package>? packages;
-    private bool isFormVisible = false;
-    private Customer currentCustomer = new();
+    private bool isDeleteModalVisible = false;
+    private Customer? customerToDelete;
+    private string searchText = string.Empty;
 
     private int currentPage = 1;
     private int pageSize = 10;
-    private int totalPages => customers == null ? 0 : (int)Math.Ceiling((double)customers.Count / pageSize);
-    private IEnumerable<Customer> displayedCustomers => customers?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Array.Empty<Customer>();
+    
+    private IEnumerable<Customer> filteredCustomers => 
+        string.IsNullOrWhiteSpace(searchText) 
+            ? (customers ?? Enumerable.Empty<Customer>())
+            : (customers ?? Enumerable.Empty<Customer>())
+                .Where(c => 
+                    (c.ConnectionId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.Phone?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                );
+
+    private int totalPages => !filteredCustomers.Any() ? 1 : (int)Math.Ceiling((double)filteredCustomers.Count() / pageSize);
+    private IEnumerable<Customer> displayedCustomers => filteredCustomers.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+    private void ResetPage()
+    {
+        currentPage = 1;
+    }
 
     private void GoToPage(int page)
     {
@@ -207,60 +192,47 @@
     {
         customers = await DbContext.Customers
             .Include(c => c.CurrentPackage)
+            .Where(c => !c.IsDeleted)
             .OrderByDescending(c => c.ConnectionDate)
             .ToListAsync();
             
         packages = await DbContext.Packages.Where(p => p.IsActive).ToListAsync();
     }
 
-    private async Task ShowAddForm()
+
+    
+    private void ConfirmDeleteCustomer(Customer customer)
     {
-        string newConnId = "1";
-        
-        var allCustomers = await DbContext.Customers.ToListAsync();
-        if (allCustomers.Any())
-        {
-            var maxId = allCustomers
-                .Select(c => int.TryParse(c.ConnectionId, out int val) ? val : 0)
-                .Max();
-                
-            if (maxId > 0)
-            {
-                newConnId = (maxId + 1).ToString();
-            }
-            else
-            {
-                newConnId = (allCustomers.Count + 1).ToString();
-            }
-        }
-        
-        currentCustomer = new Customer { ConnectionId = newConnId };
-        isFormVisible = true;
+        customerToDelete = customer;
+        isDeleteModalVisible = true;
     }
 
-    private void HideForm()
+    private void HideDeleteModal()
     {
-        isFormVisible = false;
+        isDeleteModalVisible = false;
+        customerToDelete = null;
     }
 
-    private async Task SaveCustomer()
+    private async Task SoftDeleteCustomer()
     {
-        if (currentCustomer.Id == Guid.Empty)
-        {
-            currentCustomer.Id = Guid.NewGuid();
-            // User edits ConnectionDate from form, so no need to overwrite it here
-            // TODO: In Phase 4, we'll link this to the logged in employee
-            DbContext.Customers.Add(currentCustomer);
-        }
-
+        if (customerToDelete == null) return;
+        
+        customerToDelete.IsDeleted = true;
+        DbContext.Customers.Update(customerToDelete);
         await DbContext.SaveChangesAsync();
-        isFormVisible = false;
-        ToastService.ShowSuccess("Customer saved successfully!");
+        
+        ToastService.ShowSuccess("Customer deleted successfully");
+        HideDeleteModal();
         await LoadData();
     }
     
     private void ViewProfile(Guid id)
     {
         NavManager.NavigateTo($"/customers/profile/{id}");
+    }
+    
+    private void ConfirmRenewCustomer(Customer customer)
+    {
+        NavManager.NavigateTo($"/payments/renew?connectionId={customer.ConnectionId}");
     }
 }

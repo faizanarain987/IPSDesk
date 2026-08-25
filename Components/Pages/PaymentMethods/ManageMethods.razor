@@ -1,9 +1,10 @@
 @page "/payment-methods"
-@rendermode InteractiveServer
+
 @using IPSDesk.Data
 @using IPSDesk.Models
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
 
 <PageTitle>Payment Methods - Diamond ISP</PageTitle>
 
@@ -13,37 +14,11 @@
             <h1>Payment Methods</h1>
             <p style="color: var(--text-secondary);">Manage available payment methods (Cash, Bank, Easypaisa, etc.).</p>
         </div>
-        <button class="btn-primary" @onclick="ShowAddForm">+ New Method</button>
+        <button class="btn-primary" @onclick='() => NavManager.NavigateTo("/payment-methods/add")'>+ New Method</button>
     </div>
 </div>
 
-@if (isFormVisible)
-{
-    <div class="glass-panel" style="margin-bottom: 24px; animation: fadeIn 0.3s;">
-        <h2>@(currentMethod.Id == Guid.Empty ? "Add Payment Method" : "Edit Payment Method")</h2>
-        <EditForm Model="@currentMethod" OnValidSubmit="SaveMethod">
-            <DataAnnotationsValidator />
-            
-            <div style="display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 400px;">
-                <div>
-                    <label>Method Name</label>
-                    <InputText @bind-Value="currentMethod.Name" class="form-control" placeholder="e.g. JazzCash" />
-                </div>
-                <div>
-                    <label>Status</label>
-                    <div style="padding-top: 10px;">
-                        <InputCheckbox @bind-Value="currentMethod.IsActive" /> Active
-                    </div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 16px; display: flex; gap: 12px;">
-                <button type="submit" class="btn-primary">Save Method</button>
-                <button type="button" class="btn-secondary" @onclick="HideForm">Cancel</button>
-            </div>
-        </EditForm>
-    </div>
-}
+
 
 <div class="glass-panel">
     @if (methods == null)
@@ -60,6 +35,7 @@
             <thead>
                 <tr>
                     <th>Method Name</th>
+                    <th>Default</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -68,14 +44,26 @@
                 @foreach (var method in methods)
                 {
                     <tr>
-                        <td style="font-weight: 500;">@method.Name</td>
+                        <td style="font-weight: 500; color: #111827;">@method.Name</td>
                         <td>
-                            <span style="color: @(method.IsActive ? "var(--accent-success)" : "var(--accent-danger)")">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background-color: @(method.IsDefault ? "#D1FAE5" : "#FEF3C7"); color: @(method.IsDefault ? "#047857" : "#B45309"); border: 1px solid @(method.IsDefault ? "#34D399" : "#FBBF24");">
+                                @(method.IsDefault ? "Yes" : "No")
+                            </span>
+                        </td>
+                        <td>
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background-color: @(method.IsActive ? "#D1FAE5" : "#FEE2E2"); color: @(method.IsActive ? "#047857" : "#B91C1C"); border: 1px solid @(method.IsActive ? "#34D399" : "#F87171");">
                                 @(method.IsActive ? "Active" : "Inactive")
                             </span>
                         </td>
                         <td>
-                            <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => EditMethod(method)">Edit</button>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="btn-icon btn-edit" style="color: var(--text-primary);" @onclick='() => NavManager.NavigateTo($"/payment-methods/edit/{method.Id}")' title="Edit Details">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </button>
+                                <button class="btn-icon btn-delete" style="color: var(--text-primary);" @onclick="() => ConfirmDeleteMethod(method)" title="Delete">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -84,10 +72,35 @@
     }
 </div>
 
+@if (isDeleteModalVisible && methodToDelete != null)
+{
+    <div class="modal-overlay">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Delete Payment Method</h2>
+                <button type="button" @onclick="HideDeleteModal" class="modal-close-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <div style="padding: 32px 24px; text-align: left;">
+                <p style="color: #6B7280; margin: 0; font-size: 1.05rem;">
+                    Are you sure you want to delete <strong style="color: #1F2937;">@methodToDelete.Name</strong>?
+                </p>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+                <button type="button" class="modal-cancel-btn" @onclick="HideDeleteModal">Cancel</button>
+                <button type="button" class="modal-delete-btn" @onclick="SoftDeleteMethod">Delete</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<PaymentMethod>? methods;
-    private bool isFormVisible = false;
-    private PaymentMethod currentMethod = new();
+    private bool isDeleteModalVisible = false;
+    private PaymentMethod? methodToDelete;
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,51 +109,34 @@
 
     private async Task LoadMethods()
     {
-        methods = await DbContext.PaymentMethods.OrderBy(m => m.Name).ToListAsync();
+        methods = await DbContext.PaymentMethods
+            .Where(m => !m.IsDeleted)
+            .OrderByDescending(m => m.IsDefault)
+            .ThenBy(m => m.Name)
+            .ToListAsync();
     }
 
-    private void ShowAddForm()
+    private void ConfirmDeleteMethod(PaymentMethod method)
     {
-        currentMethod = new PaymentMethod();
-        isFormVisible = true;
+        methodToDelete = method;
+        isDeleteModalVisible = true;
     }
 
-    private void EditMethod(PaymentMethod method)
+    private void HideDeleteModal()
     {
-        currentMethod = new PaymentMethod
-        {
-            Id = method.Id,
-            Name = method.Name,
-            IsActive = method.IsActive
-        };
-        isFormVisible = true;
+        isDeleteModalVisible = false;
+        methodToDelete = null;
     }
 
-    private void HideForm()
+    private async Task SoftDeleteMethod()
     {
-        isFormVisible = false;
-    }
-
-    private async Task SaveMethod()
-    {
-        if (currentMethod.Id == Guid.Empty)
-        {
-            currentMethod.Id = Guid.NewGuid();
-            DbContext.PaymentMethods.Add(currentMethod);
-        }
-        else
-        {
-            var existing = await DbContext.PaymentMethods.FindAsync(currentMethod.Id);
-            if (existing != null)
-            {
-                existing.Name = currentMethod.Name;
-                existing.IsActive = currentMethod.IsActive;
-                DbContext.PaymentMethods.Update(existing);
-            }
-        }
-
+        if (methodToDelete == null) return;
+        
+        methodToDelete.IsDeleted = true;
+        DbContext.PaymentMethods.Update(methodToDelete);
         await DbContext.SaveChangesAsync();
-        isFormVisible = false;
+        
+        HideDeleteModal();
         await LoadMethods();
     }
 }

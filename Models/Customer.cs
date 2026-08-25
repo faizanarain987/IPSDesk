@@ -35,4 +35,5 @@ public class Customer : AuditableEntity
     
     public ICollection<MonthlyPackageHistory> MonthlyHistory { get; set; } = new List<MonthlyPackageHistory>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    public ICollection<CustomerLedger> Ledgers { get; set; } = new List<CustomerLedger>();
 }

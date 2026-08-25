@@ -1,5 +1,5 @@
 @page "/customers/profile/{Id:guid}"
-@rendermode InteractiveServer
+
 @using IPSDesk.Data
 @using IPSDesk.Models
 @using Microsoft.EntityFrameworkCore
@@ -14,72 +14,150 @@
 }
 else
 {
-    <div class="glass-panel" style="margin-bottom: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <h1 style="margin-bottom: 4px;">@customer.Name</h1>
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">Connection ID: @customer.ConnectionId | Joined: @customer.ConnectionDate.ToString("MMM dd, yyyy")</p>
-                <div style="display: flex; gap: 24px;">
+    <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden;">
+        <!-- Subtle background accent -->
+        <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%); opacity: 0.05; border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;"></div>
+
+        <div style="display: flex; align-items: flex-start; gap: 24px;">
+            <!-- Back Button & Avatar -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/customers")' title="Back to Customers">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), #8B5CF6); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: 600; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);">
+                    @(string.IsNullOrEmpty(customer.Name) ? "?" : customer.Name.Substring(0, 1).ToUpper())
+                </div>
+            </div>
+
+            <!-- Profile Info -->
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Status</span>
-                        <div style="color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 500;">
-                            @(customer.IsActive ? "Active" : "Inactive")
+                        <h1 style="margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px;">@customer.Name</h1>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 24px;">
+                            <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: @(customer.IsActive ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"); color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 600; font-size: 0.85rem;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px;"></span>
+                                @(customer.IsActive ? "Active Customer" : "Inactive")
+                            </div>
+                            <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: #DBEAFE; color: #1E293B; font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.05);">
+                                @(customer.CurrentPackage?.Name ?? "No Package")
+                            </div>
                         </div>
                     </div>
-                    <div> 
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Phone</span>
-                        <div>@customer.Phone</div>
-                    </div>
-                    <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Current Package</span>
-                        <div style="font-weight: 500; color: var(--accent-primary);">@(customer.CurrentPackage?.Name ?? "None")</div>
-                    </div>
-                    <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Current Balance</span>
-                        <div style="font-weight: 600; font-size: 1.1rem; color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)");">
-                            Rs. @customer.CurrentBalance.ToString("N0")
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <div style="background: rgba(0,0,0,0.02); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-glass); min-width: 150px;">
+                            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 4px;">Current Balance</span>
+                            <div style="display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; font-weight: 700; font-size: 1.5rem; color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : (customer.CurrentBalance < 0 ? "var(--accent-success)" : "var(--text-primary)"));">
+                                <span style="font-size: 1rem; color: var(--text-secondary);">Rs.</span>
+                                <span>@customer.CurrentBalance.ToString("N0")</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-success" @onclick='() => NavManager.NavigateTo($"/payments/renew?connectionId={customer.ConnectionId}")'>Renew Package</button>
+                            <button class="btn-primary" @onclick='() => NavManager.NavigateTo($"/payments/new?connectionId={customer.ConnectionId}")'>Record Payment</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <button class="btn-primary" @onclick='() => NavManager.NavigateTo($"/payments/new?connectionId={customer.ConnectionId}")'>Record Payment</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-glass);">
+            <div>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Connection ID
+                </span>
+                <div style="font-weight: 500; margin-top: 4px;">@customer.ConnectionId</div>
+            </div>
+            <div> 
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    Email Address
+                </span>
+                <div style="font-weight: 500; margin-top: 4px; word-break: break-word;">@(string.IsNullOrEmpty(customer.Email) ? "N/A" : customer.Email)</div>
+            </div>
+            <div>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    Phone Number
+                </span>
+                <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(customer.Phone) ? "N/A" : customer.Phone)</div>
+            </div>
+            <div>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    WhatsApp
+                </span>
+                <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(customer.WhatsApp) ? "N/A" : customer.WhatsApp)</div>
+            </div>
+            <div>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    CNIC Number
+                </span>
+                <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(customer.Cnic) ? "N/A" : customer.Cnic)</div>
+            </div>
+
+            <div>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Connection Date
+                </span>
+                <div style="font-weight: 500; margin-top: 4px;">@customer.ConnectionDate.ToString("MMM dd, yyyy")</div>
+            </div>
+            <div style="grid-column: 1 / -1;">
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    Address
+                </span>
+                <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(customer.Address) ? "N/A" : customer.Address)</div>
+            </div>
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <div class="glass-panel">   
-            <h2>Payment History</h2>
-            @if (!customer.Payments.Any())
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px;">
+        <div class="glass-panel" style="min-width: 0;">   
+            <h2>Account Ledger</h2>
+            @if (!customer.Ledgers.Any())
             {
-                <p style="color: var(--text-secondary);">No payments recorded yet.</p>
+                <p style="color: var(--text-secondary);">No ledger records yet.</p>
             }
             else
             {
-                <table class="premium-table">
-                    <thead>
+                <div style="max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border-glass); border-radius: 8px;">
+                <table class="premium-table" style="margin: 0; width: 100%; min-width: 600px;">
+                    <thead style="position: sticky; top: 0; background: white; z-index: 1;">
                         <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Method</th>
+                            <th style="background: #F9FAFB;">Date</th>
+                            <th style="background: #F9FAFB;">Description</th>
+                            <th style="background: #F9FAFB;">Previous Balance</th>
+                            <th style="background: #F9FAFB;">Charge (Debit)</th>
+                            <th style="background: #F9FAFB;">Paid (Credit)</th>
+                            <th style="background: #F9FAFB;">Balance</th>
+                            <th style="background: #F9FAFB;">Processed By</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var payment in customer.Payments.OrderByDescending(p => p.PaymentDate))
+                        @foreach (var ledger in customer.Ledgers.OrderByDescending(l => l.TransactionDate))
                         {
+                            decimal prevBalance = ledger.Balance - ledger.Debit + ledger.Credit;
                             <tr>
-                                <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
-                                <td>@payment.PaymentType</td>
-                                <td style="color: var(--accent-success);">Rs. @payment.AmountCollected.ToString("N0")</td>
-                                <td>@(payment.PaymentMethod?.Name ?? "Unknown")</td>
+                                <td>@ledger.TransactionDate.ToString("MMM dd, yyyy")</td>
+                                <td>@ledger.Description</td>
+                                <td style="color: @(prevBalance > 0 ? "var(--accent-danger)" : (prevBalance < 0 ? "var(--accent-success)" : "var(--text-secondary)"));">Rs. @prevBalance.ToString("N0")</td>
+                                <td style="color: @(ledger.Debit > 0 ? "var(--accent-danger)" : "inherit");">@(ledger.Debit > 0 ? $"Rs. {ledger.Debit:N0}" : "-")</td>
+                                <td style="color: @(ledger.Credit > 0 ? "var(--accent-success)" : "inherit");">@(ledger.Credit > 0 ? $"Rs. {ledger.Credit:N0}" : "-")</td>
+                                <td style="font-weight: 600; color: @(ledger.Balance > 0 ? "var(--accent-danger)" : (ledger.Balance < 0 ? "var(--accent-success)" : "var(--text-primary)"));">Rs. @ledger.Balance.ToString("N0")</td>
+                                <td><span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(0,0,0,0.04); padding: 2px 8px; border-radius: 12px;">@(ledger.CreatedByName ?? "System")</span></td>
                             </tr>
                         }
                     </tbody>
                 </table>
+            </div>
             }
         </div>
 
-        <div class="glass-panel">
+        <div class="glass-panel" style="min-width: 0;">
             <h2>Monthly Package History</h2>
             @if (!customer.MonthlyHistory.Any())
             {
@@ -87,31 +165,35 @@ else
             }
             else
             {
-                <table class="premium-table">
-                    <thead>
+            <div style="max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border-glass); border-radius: 8px;">
+                <table class="premium-table" style="margin: 0; width: 100%; min-width: 500px;">
+                    <thead style="position: sticky; top: 0; background: white; z-index: 1;">
                         <tr>
-                            <th>Month</th>
-                            <th>Package</th>
-                            <th>Status</th>
-                            <th>Remaining</th>
+                            <th style="background: #F9FAFB;">#</th>
+                            <th style="background: #F9FAFB;">Pkg Month</th>
+                            <th style="background: #F9FAFB;">Package</th>
+                            <th style="background: #F9FAFB;">Amount</th>
+                            <th style="background: #F9FAFB;">Date of Renew</th>
+                            <th style="background: #F9FAFB;">Renewed By</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @{ int index = 1; }
                         @foreach (var history in customer.MonthlyHistory.OrderByDescending(h => h.RenewalDate))
                         {
                             <tr>
+                                <td>@index</td>
                                 <td>@history.BillingMonth</td>
-                                <td>@(history.Package?.Name ?? "Unknown")</td>
-                                <td>
-                                    <span style="color: @(history.PaymentStatus == "Paid" ? "var(--accent-success)" : "var(--accent-danger)")">
-                                        @history.PaymentStatus
-                                    </span>
-                                </td>
-                                <td>Rs. @history.RemainingBalance.ToString("N0")</td>
+                                <td>@(history.Package?.Name ?? "N/A")</td>
+                                <td>Rs. @history.PackagePrice.ToString("N0")</td>
+                                <td>@history.RenewalDate.ToString("MMM dd, yyyy")</td>
+                                <td><span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(0,0,0,0.04); padding: 2px 8px; border-radius: 12px;">@(history.CreatedByName ?? "System")</span></td>
                             </tr>
+                            index++;
                         }
                     </tbody>
                 </table>
+            </div>
             }
         </div>
     </div>
@@ -131,6 +213,7 @@ else
                 .ThenInclude(p => p.PaymentMethod)
             .Include(c => c.MonthlyHistory)
                 .ThenInclude(h => h.Package)
+            .Include(c => c.Ledgers)
             .FirstOrDefaultAsync(c => c.Id == Id);
             
         if (customer == null)

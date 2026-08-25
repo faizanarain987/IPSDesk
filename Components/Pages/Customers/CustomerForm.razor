@@ -1,0 +1,399 @@
+@page "/customers/add"
+@page "/customers/edit/{Id:guid}"
+
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@using System.ComponentModel.DataAnnotations
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+@using IPSDesk.Services
+@inject ToastService ToastService
+
+<PageTitle>@(isEditMode ? "Edit Customer" : "Add Customer") - Diamond ISP</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%); opacity: 0.05; border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;"></div>
+
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
+        <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/customers")' title="Back to Customers">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <h1 style="margin: 0;">@(isEditMode ? "Edit Customer" : "Add New Customer")</h1>
+    </div>
+
+    @if (customerModel == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <EditForm Model="@customerModel" OnValidSubmit="SaveCustomer" style="display: flex; flex-direction: column;">
+            <DataAnnotationsValidator />
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                <div>
+                    <label>Connection ID <span style="color: red;">*</span></label>
+                    <InputText @bind-Value="customerModel.ConnectionId" class="form-control" />
+                    <ValidationMessage For="@(() => customerModel.ConnectionId)" />
+                </div>
+                <div>
+                    <label>Full Name <span style="color: red;">*</span></label>
+                    <InputText @bind-Value="customerModel.Name" class="form-control" placeholder="e.g. John Doe" />
+                    <ValidationMessage For="@(() => customerModel.Name)" />
+                </div>
+                <div>
+                    <label>CNIC <span style="color: red;">*</span></label>
+                    <input type="text" @bind="customerModel.Cnic" @bind:event="oninput" maxlength="15" class="form-control" placeholder="xxxxx-xxxxxxx-x (e.g. 12345-1234567-1)" />
+                    <ValidationMessage For="@(() => customerModel.Cnic)" />
+                </div>
+                <div>
+                    <label>Phone Number <span style="color: red;">*</span></label>
+                    <input type="text" @bind="customerModel.Phone" @bind:event="oninput" maxlength="12" class="form-control" placeholder="xxxx-xxxxxxx (e.g. 0300-1234567)" />
+                    <ValidationMessage For="@(() => customerModel.Phone)" />
+                </div>
+                <div>
+                    <label>WhatsApp <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.85rem;">(Optional)</span></label>
+                    <input type="text" @bind="customerModel.WhatsApp" @bind:event="oninput" maxlength="12" class="form-control" placeholder="xxxx-xxxxxxx (e.g. 0300-1234567)" />
+                    <ValidationMessage For="@(() => customerModel.WhatsApp)" />
+                </div>
+                <div>
+                    <label>Email Address</label>
+                    <InputText @bind-Value="customerModel.Email" class="form-control" placeholder="e.g. email@example.com" />
+                    <ValidationMessage For="@(() => customerModel.Email)" />
+                </div>
+                <div style="grid-column: span 2;">
+                    <label style="display: block; margin-bottom: 8px;">Select Package <span style="color: red;">*</span></label>
+                    <div style="position: relative;" tabindex="0" @onblur="() => { isPackageDropdownOpen = false; }">
+                        <div class="form-control custom-select" @onclick="() => isPackageDropdownOpen = !isPackageDropdownOpen" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; background-color: white;">
+                            @if (customerModel.CurrentPackageId != null && packages != null)
+                            {
+                                var selectedPkg = packages.FirstOrDefault(p => p.Id == customerModel.CurrentPackageId);
+                                if (selectedPkg != null)
+                                {
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <span style="font-weight: 500;">@selectedPkg.Name</span>
+                                        <span style="color: var(--text-secondary); font-size: 0.9rem;">|</span>
+                                        <span style="font-weight: 600; color: var(--accent-primary);">Rs. @selectedPkg.MonthlyPrice.ToString("N0")</span>
+                                        <span style="color: var(--text-secondary); font-size: 0.9rem;">|</span>
+                                        <span style="color: var(--text-secondary); font-size: 0.9rem;">@selectedPkg.Speed</span>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <span style="color: var(--text-secondary);">-- Select Package --</span>
+                            }
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(@(isPackageDropdownOpen ? "180deg" : "0deg")); transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        
+                        @if (isPackageDropdownOpen)
+                        {
+                            <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: white; border: 1px solid var(--border-glass); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); z-index: 50; overflow: hidden;">
+                                @if (packages != null)
+                                {
+                                    @foreach (var pkg in packages)
+                                    {
+                                        <div @onmousedown="() => SelectPackage(pkg.Id)" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border-glass); transition: background-color 0.15s; background-color: @(customerModel.CurrentPackageId == pkg.Id ? "rgba(99,102,241,0.05)" : "transparent");" onmouseover="this.style.backgroundColor='rgba(99,102,241,0.05)'" onmouseout="this.style.backgroundColor='@(customerModel.CurrentPackageId == pkg.Id ? "rgba(99,102,241,0.05)" : "transparent")'">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <div style="display: flex; flex-direction: column;">
+                                                    <span style="font-weight: 500; color: var(--text-primary);">@pkg.Name</span>
+                                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Speed: @pkg.Speed</span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 12px;">
+                                                    <span style="font-weight: 600; color: var(--text-primary);">Rs. @pkg.MonthlyPrice.ToString("N0")</span>
+                                                    @if (customerModel.CurrentPackageId == pkg.Id)
+                                                    {
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div style="width: 18px; height: 18px;"></div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                    <!-- Hidden input to maintain Blazor EditForm validation binding -->
+                    <InputSelect @bind-Value="customerModel.CurrentPackageId" style="display: none;">
+                        <option value="">-- Select Package --</option>
+                        @if (packages != null)
+                        {
+                            @foreach (var pkg in packages)
+                            {
+                                <option value="@pkg.Id">@pkg.Name</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => customerModel.CurrentPackageId)" style="margin-top: 8px; display: block;" />
+                </div>
+                <div>
+                    <label>Connection Date</label>
+                    <InputDate @bind-Value="customerModel.ConnectionDate" class="form-control" />
+                    <ValidationMessage For="@(() => customerModel.ConnectionDate)" />
+                </div>
+                <div>
+                    <label>Opening Balance (Rs.)</label>
+                    <InputNumber @bind-Value="customerModel.CurrentBalance" class="form-control" />
+                    <ValidationMessage For="@(() => customerModel.CurrentBalance)" />
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px;">Customer Status</label>
+                    <label class="toggle-switch">
+                        <InputCheckbox @bind-Value="customerModel.IsActive" />
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span style="margin-left: 12px; font-weight: 500; vertical-align: super;">
+                        @(customerModel.IsActive ? "Active" : "Inactive")
+                    </span>
+                </div>
+                <div style="grid-column: span 2;">
+                    <label>Address <span style="color: red;">*</span></label>
+                    <InputTextArea @bind-Value="customerModel.Address" class="form-control" rows="2" />
+                    <ValidationMessage For="@(() => customerModel.Address)" />
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 16px; border-top: 1px solid var(--border-glass); padding-top: 24px;">
+                <button type="button" class="btn-secondary" @onclick='() => NavManager.NavigateTo("/customers")'>Cancel</button>
+                <button type="submit" class="btn-primary">Save Customer</button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool isEditMode = false;
+    private bool isPackageDropdownOpen = false;
+    private CustomerViewModel? customerModel;
+    private List<Package>? packages;
+
+    private void SelectPackage(Guid pkgId)
+    {
+        if (customerModel != null)
+        {
+            customerModel.CurrentPackageId = pkgId;
+            isPackageDropdownOpen = false;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var pkgs = await DbContext.Packages.Where(p => p.IsActive).ToListAsync();
+        packages = pkgs.OrderBy(p => 
+        {
+            var numPart = new string(p.Speed.Where(char.IsDigit).ToArray());
+            return int.TryParse(numPart, out int speed) ? speed : 0;
+        }).ToList();
+        
+        if (Id.HasValue)
+        {
+            var customer = await DbContext.Customers.FindAsync(Id.Value);
+            if (customer != null)
+            {
+                isEditMode = true;
+                customerModel = new CustomerViewModel
+                {
+                    Id = customer.Id,
+                    ConnectionId = customer.ConnectionId,
+                    Name = customer.Name,
+                    Phone = customer.Phone,
+                    WhatsApp = customer.WhatsApp,
+                    Email = customer.Email,
+                    Address = customer.Address,
+                    Cnic = customer.Cnic,
+                    IsActive = customer.IsActive,
+                    ConnectionDate = customer.ConnectionDate,
+                    CurrentPackageId = customer.CurrentPackageId,
+                    CurrentBalance = customer.CurrentBalance
+                };
+            }
+            else
+            {
+                NavManager.NavigateTo("/customers");
+            }
+        }
+        else
+        {
+            isEditMode = false;
+            string newConnId = "1";
+            var allCustomers = await DbContext.Customers.ToListAsync();
+            if (allCustomers.Any())
+            {
+                var maxId = allCustomers
+                    .Select(c => int.TryParse(c.ConnectionId, out int val) ? val : 0)
+                    .Max();
+                    
+                if (maxId > 0)
+                {
+                    newConnId = (maxId + 1).ToString();
+                }
+                else
+                {
+                    newConnId = (allCustomers.Count + 1).ToString();
+                }
+            }
+            customerModel = new CustomerViewModel { ConnectionId = newConnId };
+        }
+    }
+
+    private async Task SaveCustomer()
+    {
+        if (customerModel == null) return;
+
+        if (customerModel.Id == null)
+        {
+            var newCustomer = new Customer
+            {
+                Id = Guid.NewGuid(),
+                ConnectionId = customerModel.ConnectionId,
+                Name = customerModel.Name,
+                Phone = customerModel.Phone,
+                WhatsApp = customerModel.WhatsApp,
+                Email = customerModel.Email,
+                Address = customerModel.Address,
+                Cnic = customerModel.Cnic,
+                IsActive = customerModel.IsActive,
+                ConnectionDate = customerModel.ConnectionDate,
+                CurrentPackageId = customerModel.CurrentPackageId,
+                CurrentBalance = customerModel.CurrentBalance
+            };
+            DbContext.Customers.Add(newCustomer);
+            
+            if (customerModel.CurrentBalance != 0)
+            {
+                var ledger = new CustomerLedger
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = newCustomer.Id,
+                    TransactionDate = DateTime.Now,
+                    Description = "Opening Balance",
+                    Debit = customerModel.CurrentBalance > 0 ? customerModel.CurrentBalance : 0,
+                    Credit = customerModel.CurrentBalance < 0 ? Math.Abs(customerModel.CurrentBalance) : 0,
+                    Balance = customerModel.CurrentBalance
+                };
+                DbContext.CustomerLedgers.Add(ledger);
+            }
+        }
+        else
+        {
+            var existingCustomer = await DbContext.Customers.FindAsync(customerModel.Id);
+            if (existingCustomer != null)
+            {
+                // Check if balance changed manually
+                if (existingCustomer.CurrentBalance != customerModel.CurrentBalance)
+                {
+                    var difference = customerModel.CurrentBalance - existingCustomer.CurrentBalance;
+                    var ledger = new CustomerLedger
+                    {
+                        Id = Guid.NewGuid(),
+                        CustomerId = existingCustomer.Id,
+                        TransactionDate = DateTime.Now,
+                        Description = "Manual Balance Adjustment",
+                        Debit = difference > 0 ? difference : 0,
+                        Credit = difference < 0 ? Math.Abs(difference) : 0,
+                        Balance = customerModel.CurrentBalance
+                    };
+                    DbContext.CustomerLedgers.Add(ledger);
+                }
+
+                existingCustomer.ConnectionId = customerModel.ConnectionId;
+                existingCustomer.Name = customerModel.Name;
+                existingCustomer.Phone = customerModel.Phone;
+                existingCustomer.WhatsApp = customerModel.WhatsApp;
+                existingCustomer.Email = customerModel.Email;
+                existingCustomer.Address = customerModel.Address;
+                existingCustomer.Cnic = customerModel.Cnic;
+                existingCustomer.IsActive = customerModel.IsActive;
+                existingCustomer.ConnectionDate = customerModel.ConnectionDate;
+                existingCustomer.CurrentPackageId = customerModel.CurrentPackageId;
+                existingCustomer.CurrentBalance = customerModel.CurrentBalance;
+                
+                DbContext.Customers.Update(existingCustomer);
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+        ToastService.ShowSuccess($"Customer {(isEditMode ? "updated" : "saved")} successfully!");
+        NavManager.NavigateTo("/customers");
+    }
+
+    public class CustomerViewModel
+    {
+        public Guid? Id { get; set; }
+        
+        [Required(ErrorMessage = "Connection ID is required")]
+        public string ConnectionId { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+        
+        private string _phone = "";
+        [Required(ErrorMessage = "Phone Number is required")]
+        [RegularExpression(@"^0\d{3}-\d{7}$", ErrorMessage = "Phone Number must start with 0 and be in format xxxx-xxxxxxx")]
+        public string Phone 
+        { 
+            get => _phone;
+            set
+            {
+                var val = new string((value ?? "").Where(char.IsDigit).ToArray());
+                if (val.Length > 0 && val[0] != '0') val = "0" + val;
+                if (val.Length > 4) val = val.Insert(4, "-");
+                if (val.Length > 12) val = val.Substring(0, 12);
+                _phone = val;
+            }
+        }
+        
+        private string _whatsApp = "";
+        [RegularExpression(@"^$|^0\d{3}-\d{7}$", ErrorMessage = "WhatsApp must start with 0 and be in format xxxx-xxxxxxx")]
+        public string WhatsApp 
+        { 
+            get => _whatsApp;
+            set
+            {
+                var val = new string((value ?? "").Where(char.IsDigit).ToArray());
+                if (val.Length > 0 && val[0] != '0') val = "0" + val;
+                if (val.Length > 4) val = val.Insert(4, "-");
+                if (val.Length > 12) val = val.Substring(0, 12);
+                _whatsApp = val;
+            }
+        }
+        
+        public string Email { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Address is required")]
+        public string Address { get; set; } = string.Empty;
+        
+        private string _cnic = "";
+        [Required(ErrorMessage = "CNIC is required")]
+        [RegularExpression(@"^\d{5}-\d{7}-\d{1}$", ErrorMessage = "CNIC must be in format xxxxx-xxxxxxx-x")]
+        public string Cnic 
+        { 
+            get => _cnic;
+            set
+            {
+                var val = new string((value ?? "").Where(char.IsDigit).ToArray());
+                if (val.Length > 5) val = val.Insert(5, "-");
+                if (val.Length > 13) val = val.Insert(13, "-");
+                if (val.Length > 15) val = val.Substring(0, 15);
+                _cnic = val;
+            }
+        }
+        
+        public bool IsActive { get; set; } = true;
+        
+        public DateTime ConnectionDate { get; set; } = DateTime.Now;
+        
+        [Required(ErrorMessage = "Please select a package")]
+        public Guid? CurrentPackageId { get; set; }
+        
+        public decimal CurrentBalance { get; set; } = 0;
+    }
+}

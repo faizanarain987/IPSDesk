@@ -1,12 +1,14 @@
 @page "/employees"
-@rendermode InteractiveServer
+
 @using IPSDesk.Models
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using IPSDesk.Services
 @inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 @using System.ComponentModel.DataAnnotations
 
 <PageTitle>Employees / Users - Diamond ISP</PageTitle>
@@ -29,7 +31,7 @@
                 <button type="button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 0;" @onclick="HideForm">&times;</button>
             </div>
             
-            <EditForm Model="@userModel" OnValidSubmit="SaveUser" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+            <EditForm Model="@userModel" OnValidSubmit="SaveUser" OnInvalidSubmit="HandleInvalidSubmit" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
                 <DataAnnotationsValidator />
                 
                 <div class="modal-body">
@@ -50,16 +52,30 @@
                         </div>
                         <div>
                             <label>Phone Number <span style="color: red;">*</span></label>
-                            <InputText @bind-Value="userModel.PhoneNumber" class="form-control" placeholder="e.g. 0300-1234567" />
+                            <input type="text" @bind="userModel.PhoneNumber" @bind:event="oninput" maxlength="12" class="form-control" placeholder="xxxx-xxxxxxx (e.g. 0300-1234567)" />
                             <ValidationMessage For="@(() => userModel.PhoneNumber)" />
                         </div>
                         
                         <div>
                             <label>CNIC <span style="color: red;">*</span></label>
-                            <InputText @bind-Value="userModel.Cnic" class="form-control" placeholder="e.g. 12345-1234567-1" />
+                            <input type="text" @bind="userModel.Cnic" @bind:event="oninput" maxlength="15" class="form-control" placeholder="xxxxx-xxxxxxx-x (e.g. 12345-1234567-1)" />
                             <ValidationMessage For="@(() => userModel.Cnic)" />
                         </div>
                         
+                        <div style="grid-column: 1 / -1;">
+                            <label>Home Address <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.85rem;">(Optional)</span></label>
+                            <InputTextArea @bind-Value="userModel.HomeAddress" class="form-control" placeholder="Enter complete home address" style="resize: vertical; min-height: 80px;" />
+                        </div>
+                        
+                        <div>
+                            <label>Role <span style="color: red;">*</span></label>
+                            <InputSelect @bind-Value="userModel.Role" class="form-control">
+                                <option value="Admin">Admin</option>
+                                <option value="Manager">Manager</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => userModel.Role)" />
+                        </div>
+
                         <div>
                             <label style="display: block; margin-bottom: 8px;">Employee Status</label>
                             <label class="toggle-switch">
@@ -75,7 +91,19 @@
                         {
                             <div>
                                 <label>Password <span style="color: red;">*</span></label>
-                                <InputText @bind-Value="userModel.Password" type="password" class="form-control" placeholder="Enter secure password" />
+                                <div style="position: relative;">
+                                    <InputText @bind-Value="userModel.Password" type="@(showPassword ? "text" : "password")" class="form-control" placeholder="Enter secure password" style="padding-right: 40px;" />
+                                    <button type="button" @onclick="() => showPassword = !showPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px; display: flex; align-items: center; justify-content: center;">
+                                        @if (showPassword)
+                                        {
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        }
+                                        else
+                                        {
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        }
+                                    </button>
+                                </div>
                                 <ValidationMessage For="@(() => userModel.Password)" />
                             </div>
                         }
@@ -99,6 +127,7 @@
                 <th>Email</th>
                 <th>Phone</th>
                 <th>CNIC</th>
+                <th>Role</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -107,13 +136,13 @@
             @if (users == null)
             {
                 <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading employees...</td>
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading employees...</td>
                 </tr>
             }
             else if (!users.Any())
             {
                 <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">
+                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 24px;">
                         No employees found. Click "Add Employee" to create one.
                     </td>
                 </tr>
@@ -128,6 +157,11 @@
                         <td>@user.PhoneNumber</td>
                         <td>@(string.IsNullOrEmpty(user.Cnic) ? "N/A" : user.Cnic)</td>
                         <td>
+                            <span class="profile-role-badge" style="background-color: @(GetRoleBadgeColor(user.Id)); color: #1E293B; font-weight: 600; font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; display: inline-block;">
+                                @(userRoles.ContainsKey(user.Id) ? userRoles[user.Id] : "Technician")
+                            </span>
+                        </td>
+                        <td>
                             <span style="color: @(user.IsActive ? "var(--accent-success)" : "var(--text-secondary)");">
                                 @(user.IsActive ? "Active" : "Inactive")
                             </span>
@@ -137,10 +171,13 @@
                                 <button class="btn-icon btn-view" style="color: var(--text-primary);" @onclick="() => ViewProfile(user.Id)" title="View Profile">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 </button>
-                                <button class="btn-icon btn-edit" style="color: var(--text-primary);" @onclick="() => ShowEditForm(user)" title="Edit">
+                                <button class="btn-icon btn-edit" style="color: var(--text-primary);" @onclick="() => ShowEditForm(user)" title="Edit Details">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                 </button>
-                                <button class="btn-icon btn-delete" style="color: var(--text-primary);" @onclick="() => SoftDeleteUser(user)" title="Delete">
+                                <button class="btn-icon btn-reset" style="color: var(--text-primary);" @onclick="() => ShowResetPasswordModal(user)" title="Reset Password">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                                </button>
+                                <button class="btn-icon btn-delete" style="color: var(--text-primary);" @onclick="() => ConfirmDeleteUser(user)" title="Delete">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                                 </button>
                             </div>
@@ -152,13 +189,126 @@
     </table>
 </div>
 
+@if (isDeleteModalVisible && userToDelete != null)
+{
+    <div class="modal-overlay">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Delete Employee</h2>
+                <button type="button" @onclick="HideDeleteModal" class="modal-close-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div style="padding: 32px 24px; text-align: left;">
+                <p style="color: #6B7280; margin: 0; font-size: 1.05rem;">
+                    Are you sure you want to delete this employee?
+                </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+                <button type="button" class="modal-cancel-btn" @onclick="HideDeleteModal">Cancel</button>
+                <button type="button" class="modal-delete-btn" @onclick="SoftDeleteUser">Delete</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isResetModalVisible && userToReset != null)
+{
+    <div class="modal-overlay">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <EditForm Model="@resetPasswordModel" OnValidSubmit="ResetEmployeePassword">
+                <DataAnnotationsValidator />
+                
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
+                    <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Reset Password</h2>
+                    <button type="button" @onclick="HideResetModal" class="modal-close-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                
+                <!-- Body -->
+                <div style="padding: 24px; text-align: left;">
+                    <p style="color: #6B7280; margin: 0 0 16px 0; font-size: 0.95rem;">
+                        Set a new password for <strong style="color: #1F2937;">@userToReset.FullName</strong>.
+                    </p>
+
+                    @if (!string.IsNullOrEmpty(resetErrorMessage))
+                    {
+                        <div style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); font-size: 0.85rem;">
+                            @resetErrorMessage
+                        </div>
+                    }
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500;">New Password <span style="color: red;">*</span></label>
+                        <div style="position: relative;">
+                            <InputText @bind-Value="resetPasswordModel.NewPassword" type="@(showNewPassword ? "text" : "password")" class="form-control" placeholder="Enter new password" style="padding-right: 40px; background: #F9FAFB; border: 1px solid #D1D5DB;" />
+                            <button type="button" @onclick="() => showNewPassword = !showNewPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6B7280; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                                @if (showNewPassword)
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                }
+                                else
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                }
+                            </button>
+                        </div>
+                        <ValidationMessage For="@(() => resetPasswordModel.NewPassword)" />
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500;">Confirm Password <span style="color: red;">*</span></label>
+                        <div style="position: relative;">
+                            <InputText @bind-Value="resetPasswordModel.ConfirmPassword" type="@(showConfirmPassword ? "text" : "password")" class="form-control" placeholder="Confirm new password" style="padding-right: 40px; background: #F9FAFB; border: 1px solid #D1D5DB;" />
+                            <button type="button" @onclick="() => showConfirmPassword = !showConfirmPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6B7280; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                                @if (showConfirmPassword)
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                }
+                                else
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                }
+                            </button>
+                        </div>
+                        <ValidationMessage For="@(() => resetPasswordModel.ConfirmPassword)" />
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+                    <button type="button" class="modal-cancel-btn" @onclick="HideResetModal">Cancel</button>
+                    <button type="submit" class="modal-update-btn">Update Password</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
 @code {
     private List<ApplicationUser>? users;
+    private Dictionary<string, string> userRoles = new(); // Stores userId -> roleName mapping
     private bool isFormVisible = false;
+    private bool isDeleteModalVisible = false;
     private bool isEditMode = false;
+    private bool isResetModalVisible = false;
+    private bool showPassword = false;
+    private bool showNewPassword = false;
+    private bool showConfirmPassword = false;
     private UserViewModel userModel = new();
+    private ResetPasswordViewModel resetPasswordModel = new();
     private string errorMessage = "";
+    private string resetErrorMessage = "";
     private ApplicationUser? editingUser;
+    private ApplicationUser? userToDelete;
+    private ApplicationUser? userToReset;
 
     protected override async Task OnInitializedAsync()
     {
@@ -171,6 +321,24 @@
             .Where(u => !u.IsDeleted)
             .OrderBy(u => u.FullName)
             .ToListAsync();
+
+        userRoles.Clear();
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userRoles[user.Id] = roles.FirstOrDefault() ?? "Manager";
+        }
+    }
+
+    private string GetRoleBadgeColor(string userId)
+    {
+        var role = userRoles.ContainsKey(userId) ? userRoles[userId] : "Manager";
+        return role switch
+        {
+            "Admin" => "#D1FAE5",      // Light Green
+            "Manager" => "#DBEAFE",    // Light Blue
+            _ => "#E2E8F0"
+        };
     }
 
     private void ViewProfile(string userId)
@@ -180,8 +348,9 @@
 
     private void ShowAddForm()
     {
-        userModel = new UserViewModel();
+        userModel = new UserViewModel { Role = "Manager" };
         isEditMode = false;
+        showPassword = false;
         errorMessage = "";
         isFormVisible = true;
     }
@@ -189,6 +358,7 @@
     private void ShowEditForm(ApplicationUser user)
     {
         editingUser = user;
+        var currentRole = userRoles.ContainsKey(user.Id) ? userRoles[user.Id] : "Manager";
         userModel = new UserViewModel
         {
             Id = user.Id,
@@ -196,9 +366,13 @@
             Email = user.Email ?? "",
             PhoneNumber = user.PhoneNumber ?? "",
             Cnic = user.Cnic ?? "",
-            IsActive = user.IsActive
+            HomeAddress = user.HomeAddress ?? "",
+            IsActive = user.IsActive,
+            Role = currentRole,
+            Password = "" // Clear password field on edit load
         };
         isEditMode = true;
+        showPassword = false;
         errorMessage = "";
         isFormVisible = true;
     }
@@ -208,9 +382,24 @@
         isFormVisible = false;
     }
 
+    private void HandleInvalidSubmit()
+    {
+        ToastService.ShowError("Please correct the highlighted fields before saving.");
+    }
+
     private async Task SaveUser()
     {
         errorMessage = "";
+
+        // Ensure roles exist
+        var rolesToEnsure = new[] { "Admin", "Manager" };
+        foreach (var r in rolesToEnsure)
+        {
+            if (!await RoleManager.RoleExistsAsync(r))
+            {
+                await RoleManager.CreateAsync(new IdentityRole(r));
+            }
+        }
         
         if (isEditMode && editingUser != null)
         {
@@ -219,11 +408,17 @@
             editingUser.UserName = userModel.Email; // UserName is typically Email in Identity
             editingUser.PhoneNumber = userModel.PhoneNumber;
             editingUser.Cnic = userModel.Cnic;
+            editingUser.HomeAddress = userModel.HomeAddress;
             editingUser.IsActive = userModel.IsActive;
             
             var result = await UserManager.UpdateAsync(editingUser);
             if (result.Succeeded)
             {
+                // Update Roles
+                var currentRoles = await UserManager.GetRolesAsync(editingUser);
+                await UserManager.RemoveFromRolesAsync(editingUser, currentRoles);
+                await UserManager.AddToRoleAsync(editingUser, userModel.Role);
+
                 ToastService.ShowSuccess("Employee updated successfully");
                 HideForm();
                 await LoadUsers();
@@ -248,12 +443,16 @@
                 UserName = userModel.Email, // We use Email as UserName
                 PhoneNumber = userModel.PhoneNumber,
                 Cnic = userModel.Cnic,
+                HomeAddress = userModel.HomeAddress,
                 IsActive = userModel.IsActive
             };
             
             var result = await UserManager.CreateAsync(newUser, userModel.Password!);
             if (result.Succeeded)
             {
+                // Assign Role
+                await UserManager.AddToRoleAsync(newUser, userModel.Role);
+
                 ToastService.ShowSuccess("Employee created successfully");
                 HideForm();
                 await LoadUsers();
@@ -265,19 +464,85 @@
         }
     }
 
-    private async Task SoftDeleteUser(ApplicationUser user)
+    private void ConfirmDeleteUser(ApplicationUser user)
     {
-        user.IsDeleted = true;
-        var result = await UserManager.UpdateAsync(user);
+        userToDelete = user;
+        isDeleteModalVisible = true;
+    }
+
+    private void HideDeleteModal()
+    {
+        isDeleteModalVisible = false;
+        userToDelete = null;
+    }
+
+    private async Task SoftDeleteUser()
+    {
+        if (userToDelete == null) return;
+        
+        userToDelete.IsDeleted = true;
+        var result = await UserManager.UpdateAsync(userToDelete);
         if (result.Succeeded)
         {
             ToastService.ShowSuccess("Employee deleted successfully");
+            HideDeleteModal();
             await LoadUsers();
         }
         else
         {
             ToastService.ShowError("Error deleting employee");
         }
+    }
+
+    private void ShowResetPasswordModal(ApplicationUser user)
+    {
+        userToReset = user;
+        resetPasswordModel = new ResetPasswordViewModel();
+        showNewPassword = false;
+        showConfirmPassword = false;
+        resetErrorMessage = "";
+        isResetModalVisible = true;
+    }
+
+    private void HideResetModal()
+    {
+        isResetModalVisible = false;
+        userToReset = null;
+    }
+
+    private async Task ResetEmployeePassword()
+    {
+        if (userToReset == null) return;
+        
+        resetErrorMessage = "";
+        if (resetPasswordModel.NewPassword != resetPasswordModel.ConfirmPassword)
+        {
+            resetErrorMessage = "Passwords do not match.";
+            return;
+        }
+
+        var token = await UserManager.GeneratePasswordResetTokenAsync(userToReset);
+        var result = await UserManager.ResetPasswordAsync(userToReset, token, resetPasswordModel.NewPassword);
+        
+        if (result.Succeeded)
+        {
+            ToastService.ShowSuccess("Password reset successfully");
+            HideResetModal();
+        }
+        else
+        {
+            resetErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    public class ResetPasswordViewModel
+    {
+        [Required(ErrorMessage = "New Password is required")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters")]
+        public string NewPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "Confirm Password is required")]
+        public string ConfirmPassword { get; set; } = "";
     }
 
     public class UserViewModel
@@ -291,15 +556,46 @@
         [EmailAddress(ErrorMessage = "Invalid Email Address")]
         public string Email { get; set; } = "";
         
+        private string _phoneNumber = "";
         [Required(ErrorMessage = "Phone Number is required")]
-        public string PhoneNumber { get; set; } = "";
+        [RegularExpression(@"^0\d{3}-\d{7}$", ErrorMessage = "Phone Number must start with 0 and be in format xxxx-xxxxxxx")]
+        public string PhoneNumber 
+        { 
+            get => _phoneNumber;
+            set
+            {
+                var val = new string((value ?? "").Where(char.IsDigit).ToArray());
+                if (val.Length > 0 && val[0] != '0') val = "0" + val;
+                if (val.Length > 4) val = val.Insert(4, "-");
+                if (val.Length > 12) val = val.Substring(0, 12);
+                _phoneNumber = val;
+            }
+        }
         
         // Password is only required when creating a new user
         public string? Password { get; set; }
         
+        private string _cnic = "";
         [Required(ErrorMessage = "CNIC is required")]
-        public string Cnic { get; set; } = "";
+        [RegularExpression(@"^\d{5}-\d{7}-\d{1}$", ErrorMessage = "CNIC must be in format xxxxx-xxxxxxx-x")]
+        public string Cnic 
+        { 
+            get => _cnic;
+            set
+            {
+                var val = new string((value ?? "").Where(char.IsDigit).ToArray());
+                if (val.Length > 5) val = val.Insert(5, "-");
+                if (val.Length > 13) val = val.Insert(13, "-");
+                if (val.Length > 15) val = val.Substring(0, 15);
+                _cnic = val;
+            }
+        }
+        
+        public string? HomeAddress { get; set; }
         
         public bool IsActive { get; set; } = true;
+
+        [Required(ErrorMessage = "Role is required")]
+        public string Role { get; set; } = "Manager";
     }
 }

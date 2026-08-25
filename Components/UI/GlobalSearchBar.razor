@@ -1,0 +1,96 @@
+
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider ServiceProvider
+@inject NavigationManager NavManager
+
+<div class="search-bar" style="position: relative;">
+    <input type="text" class="form-control" placeholder="Search by Id or Name..." style="width: 300px; margin-bottom: 0; border-color: rgba(0, 0, 0, 0.2);" 
+           @bind="SearchQuery" @bind:event="oninput" @onfocus="() => showDropdown = true" />
+    
+    @if (showDropdown && !string.IsNullOrWhiteSpace(SearchQuery))
+    {
+        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 40;" @onclick="() => showDropdown = false"></div>
+        <div style="position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid var(--border-glass); border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); z-index: 100; max-height: 300px; overflow-y: auto; margin-top: 8px;">
+            @if (isSearching)
+            {
+                <div style="padding: 12px; color: var(--text-secondary); font-size: 0.85rem;">Searching...</div>
+            }
+            else if (searchResults == null || !searchResults.Any())
+            {
+                <div style="padding: 12px; color: var(--text-secondary); font-size: 0.85rem;">No customers found.</div>
+            }
+            else
+            {
+                @foreach (var customer in searchResults)
+                {
+                    <div style="padding: 12px; cursor: pointer; border-bottom: 1px solid var(--border-glass); transition: background-color 0.2s;"
+                         @onmousedown="() => NavigateToCustomer(customer.Id)"
+                         onmouseover="this.style.backgroundColor='#F3F4F6'"
+                         onmouseout="this.style.backgroundColor='transparent'">
+                        <div style="font-weight: 600; color: var(--text-primary);">@customer.ConnectionId <span style="font-weight: 400; color: var(--text-secondary);">- @customer.Name</span></div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string _searchQuery = "";
+    private string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            if (_searchQuery != value)
+            {
+                _searchQuery = value;
+                _ = PerformSearch();
+            }
+        }
+    }
+    
+    private bool showDropdown = false;
+    private bool isSearching = false;
+    private List<Customer>? searchResults;
+
+    private async Task PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            searchResults = null;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        isSearching = true;
+        await InvokeAsync(StateHasChanged);
+
+        var query = SearchQuery.ToLower();
+        
+        using var scope = ServiceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        searchResults = await context.Customers
+            .Where(c => c.ConnectionId.ToLower().Contains(query) || c.Name.ToLower().Contains(query))
+            .Take(10)
+            .ToListAsync();
+            
+        isSearching = false;
+        await InvokeAsync(StateHasChanged);
+    }
+    
+
+
+    private void NavigateToCustomer(Guid id)
+    {
+        showDropdown = false;
+        _searchQuery = "";
+        searchResults = null;
+        // Ensure navigation actually triggers a refresh if we're already on a profile page
+        NavManager.NavigateTo($"/customers/profile/{id}", forceLoad: true);
+    }
+}

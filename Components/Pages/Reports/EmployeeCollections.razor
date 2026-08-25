@@ -1,76 +1,128 @@
 @page "/reports"
-@rendermode InteractiveServer
+
 @using IPSDesk.Data
+@using IPSDesk.Models
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
 
-<PageTitle>Reports - Diamond ISP</PageTitle>
+<PageTitle>Collection Report - Diamond ISP</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px;">
-    <h1>Reports & Accountability</h1>
-    <p style="color: var(--text-secondary);">View collection history and performance by employee.</p>
+    <h1>Collection Report</h1>
+    <p style="color: var(--text-secondary);">View detailed collection history by specific employees over a date range.</p>
 </div>
 
-<div class="glass-panel">
-    <h2>Employee Collections</h2>
-    @if (collections == null)
-    {
-        <p>Loading...</p>
-    }
-    else if (!collections.Any())
-    {
-        <p>No collection data found.</p>
-    }
-    else
-    {
-        <table class="premium-table">
-            <thead>
-                <tr>
-                    <th>Employee Name</th>
-                    <th>Total Payments Collected</th>
-                    <th>Total Amount (Rs.)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in collections)
+<div class="glass-panel" style="margin-bottom: 24px;">
+    <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Employee</label>
+            <select class="form-control" @bind="selectedEmployeeId">
+                <option value="">-- All Employees --</option>
+                @if (employees != null)
                 {
-                    <tr>
-                        <td style="font-weight: 500;">@c.EmployeeName</td>
-                        <td>@c.PaymentsCount</td>
-                        <td style="color: var(--accent-success); font-weight: 600;">Rs. @c.TotalAmount.ToString("N0")</td>
-                    </tr>
+                    @foreach (var emp in employees)
+                    {
+                        <option value="@emp.Id">@emp.FullName</option>
+                    }
                 }
-            </tbody>
-        </table>
-    }
+            </select>
+        </div>
+        <div style="flex: 1; min-width: 150px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">From Date</label>
+            <input type="date" class="form-control" @bind="startDate" />
+        </div>
+        <div style="flex: 1; min-width: 150px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">To Date</label>
+            <input type="date" class="form-control" @bind="endDate" />
+        </div>
+        <div>
+            <button class="btn-primary" @onclick="GenerateReport">Generate Report</button>
+        </div>
+    </div>
 </div>
+
+@if (hasSearched)
+{
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 24px;">
+        <div class="glass-panel" style="border-left: 4px solid var(--accent-success);">
+            <div style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Collection</div>
+            <div style="font-size: 2rem; font-weight: 700; margin-top: 8px; color: var(--accent-success);">Rs. @totalCollection.ToString("N0")</div>
+        </div>
+        <div class="glass-panel" style="border-left: 4px solid var(--accent-primary);">
+            <div style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Transactions</div>
+            <div style="font-size: 2rem; font-weight: 700; margin-top: 8px;">@filteredPayments?.Count</div>
+        </div>
+    </div>
+
+    <div class="glass-panel">
+        <h2>Collection Details</h2>
+        @if (filteredPayments == null || !filteredPayments.Any())
+        {
+            <p style="color: var(--text-secondary);">No collections found for the selected criteria.</p>
+        }
+        else
+        {
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Receipt No</th>
+                        <th>Connection ID</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Collected By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in filteredPayments)
+                    {
+                        <tr>
+                            <td>@p.PaymentDate.ToString("MMM dd, yyyy")</td>
+                            <td style="font-family: monospace;">@p.ReceiptNumber</td>
+                            <td style="color: var(--text-secondary);">@(p.Customer?.ConnectionId ?? "N/A")</td>
+                            <td style="font-weight: 500;">@(p.Customer?.Name ?? "Unknown")</td>
+                            <td style="font-weight: 600; color: var(--accent-success);">Rs. @p.AmountCollected.ToString("N0")</td>
+                            <td><span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(0,0,0,0.04); padding: 2px 8px; border-radius: 12px;">@(p.CreatedByName ?? "System")</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
 
 @code {
-    private List<EmployeeCollection>? collections;
+    private List<ApplicationUser>? employees;
+    private string selectedEmployeeId = "";
+    private DateTime startDate = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+    private DateTime endDate = DateTime.Now.Date;
+    
+    private bool hasSearched = false;
+    private decimal totalCollection = 0;
+    private List<Payment>? filteredPayments;
 
     protected override async Task OnInitializedAsync()
     {
-        // Currently grouping by CollectedById. 
-        // Note: For a newly seeded DB where payments might have null CollectedById, we handle that.
-        var payments = await DbContext.Payments
-            .ToListAsync();
-            
-        collections = payments
-            .GroupBy(p => p.CreatedById)
-            .Select(g => new EmployeeCollection
-            {
-                EmployeeName = g.First().CreatedByName ?? "System / Unknown Employee",
-                PaymentsCount = g.Count(),
-                TotalAmount = g.Sum(p => p.AmountCollected)
-            })
-            .OrderByDescending(c => c.TotalAmount)
-            .ToList();
+        employees = await DbContext.Users.Where(u => !u.IsDeleted).ToListAsync();
+        await GenerateReport();
     }
-    
-    private class EmployeeCollection
+
+    private async Task GenerateReport()
     {
-        public string EmployeeName { get; set; } = "";
-        public int PaymentsCount { get; set; }
-        public decimal TotalAmount { get; set; }
+        // Adjust endDate to include the entire day if it's matching the exact date (00:00:00)
+        var endDateIncluded = endDate.Date.AddDays(1).AddTicks(-1);
+
+        var query = DbContext.Payments
+            .Include(p => p.Customer)
+            .Where(p => !p.IsDeleted && p.PaymentDate >= startDate.Date && p.PaymentDate <= endDateIncluded);
+            
+        if (!string.IsNullOrEmpty(selectedEmployeeId))
+        {
+            query = query.Where(p => p.CreatedById == selectedEmployeeId);
+        }
+        
+        filteredPayments = await query.OrderByDescending(p => p.PaymentDate).ToListAsync();
+        totalCollection = filteredPayments.Sum(p => p.AmountCollected);
+        hasSearched = true;
     }
 }

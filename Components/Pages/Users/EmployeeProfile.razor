@@ -1,5 +1,5 @@
 @page "/employee/{Id}"
-@rendermode InteractiveServer
+
 @using IPSDesk.Data
 @using IPSDesk.Models
 @using Microsoft.AspNetCore.Identity
@@ -16,42 +16,78 @@
 }
 else
 {
-    <div class="glass-panel" style="margin-bottom: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <h1 style="margin-bottom: 4px;">@employee.FullName</h1>
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">System ID: @employee.Id</p>
-                
-                <div style="display: flex; gap: 32px;">
+    <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden;">
+        <!-- Subtle background accent -->
+        <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%); opacity: 0.05; border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;"></div>
+
+        <div style="display: flex; align-items: flex-start; gap: 24px;">
+            <!-- Back Button & Avatar -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/employees")' title="Back to Employees">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), #8B5CF6); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: 600; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);">
+                    @(string.IsNullOrEmpty(employee.FullName) ? "?" : employee.FullName.Substring(0, 1).ToUpper())
+                </div>
+            </div>
+
+            <!-- Profile Info -->
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Status</span>
-                        <div style="color: @(employee.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 500;">
-                            @(employee.IsActive ? "Active Employee" : "Inactive")
+                        <h1 style="margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px;">@employee.FullName</h1>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 24px;">
+                            <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: @(employee.IsActive ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"); color: @(employee.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 600; font-size: 0.85rem;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px;"></span>
+                                @(employee.IsActive ? "Active Employee" : "Inactive")
+                            </div>
+                            <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: @(role == "Admin" ? "#D1FAE5" : "#DBEAFE"); color: #1E293B; font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.05);">
+                                @role
+                            </div>
                         </div>
                     </div>
-                    <div> 
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Email Address</span>
-                        <div>@(string.IsNullOrEmpty(employee.Email) ? "N/A" : employee.Email)</div>
-                    </div>
-                    <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Phone Number</span>
-                        <div>@(string.IsNullOrEmpty(employee.PhoneNumber) ? "N/A" : employee.PhoneNumber)</div>
-                    </div>
-                    <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">CNIC</span>
-                        <div>@(string.IsNullOrEmpty(employee.Cnic) ? "N/A" : employee.Cnic)</div>
-                    </div>
-                    <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Total Collections Recorded</span>
-                        <div style="font-weight: 600; color: var(--accent-primary);">
-                            @paymentsCollected.Count
+                    <div style="background: rgba(0,0,0,0.02); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-glass); min-width: 200px;">
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 4px;">Total Collections</span>
+                        <div style="display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; font-weight: 700; font-size: 1.5rem; color: var(--accent-primary);">
+                            <span style="font-size: 1rem; color: var(--text-secondary);">Rs.</span>
+                            <span>@paymentsCollected.Sum(p => p.AmountCollected).ToString("N0")</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <button class="btn-secondary" @onclick='() => NavManager.NavigateTo("/employees")'>Back to List</button>
         </div>
-    </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-glass);">
+                    <div> 
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            Email Address
+                        </span>
+                        <div style="font-weight: 500; margin-top: 4px; word-break: break-word;">@(string.IsNullOrEmpty(employee.Email) ? "N/A" : employee.Email)</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            Phone Number
+                        </span>
+                        <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(employee.PhoneNumber) ? "N/A" : employee.PhoneNumber)</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            CNIC Number
+                        </span>
+                        <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(employee.Cnic) ? "N/A" : employee.Cnic)</div>
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                            Home Address
+                        </span>
+                        <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(employee.HomeAddress) ? "N/A" : employee.HomeAddress)</div>
+                    </div>
+                </div>
+        </div>
 
     <div class="glass-panel">
         <h2 style="margin-top: 0; margin-bottom: 16px;">Collection History</h2>
@@ -100,7 +136,76 @@ else
                             </td>
                             <td>@payment.PaymentType</td>
                             <td>@(payment.PaymentMethod?.Name ?? "Unknown")</td>
-                            <td style="color: var(--accent-success); font-weight: 500;">Rs. @payment.AmountCollected.ToString("N0")</td>
+                            <td>
+                                <div style="display: flex; justify-content: flex-start; gap: 8px; color: var(--accent-success); font-weight: 500; min-width: 80px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Rs.</span>
+                                    <span>@payment.AmountCollected.ToString("N0")</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="glass-panel" style="margin-top: 24px;">
+        <h2 style="margin-top: 0; margin-bottom: 16px;">Package Renewals Recorded</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem;">
+            Customer package renewals processed by this employee.
+        </p>
+
+        @if (!renewalsRecorded.Any())
+        {
+            <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+                This employee has not processed any package renewals yet.
+            </div>
+        }
+        else
+        {
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Package</th>
+                        <th>Month</th>
+                        <th>Amount Paid</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var renewal in renewalsRecorded.OrderByDescending(r => r.RenewalDate))
+                    {
+                        <tr>
+                            <td>@renewal.RenewalDate.ToString("MMM dd, yyyy hh:mm tt")</td>
+                            <td>
+                                @if (renewal.Customer != null)
+                                {
+                                    <a href="/customers/profile/@renewal.Customer.Id" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">
+                                        @renewal.Customer.Name
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span style="color: var(--text-secondary);">Unknown</span>
+                                }
+                            </td>
+                            <td>@(renewal.Package?.Name ?? "Unknown")</td>
+                            <td>@renewal.BillingMonth</td>
+                            <td>
+                                <div style="display: flex; justify-content: flex-start; gap: 8px; color: var(--accent-success); font-weight: 500; min-width: 80px;">
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Rs.</span>
+                                    <span>@renewal.AmountPaid.ToString("N0")</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; 
+                                     background: @(renewal.PaymentStatus == "Paid" ? "rgba(16, 185, 129, 0.1)" : renewal.PaymentStatus == "Unpaid" ? "rgba(239, 68, 68, 0.1)" : "rgba(245, 158, 11, 0.1)");
+                                     color: @(renewal.PaymentStatus == "Paid" ? "var(--accent-success)" : renewal.PaymentStatus == "Unpaid" ? "var(--accent-danger)" : "#F59E0B");">
+                                    @renewal.PaymentStatus
+                                </span>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -115,6 +220,8 @@ else
 
     private ApplicationUser? employee;
     private List<Payment> paymentsCollected = new();
+    private List<MonthlyPackageHistory> renewalsRecorded = new();
+    private string role = "Manager";
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,11 +230,22 @@ else
 
         if (employee != null)
         {
+            // Load role
+            var roles = await UserManager.GetRolesAsync(employee);
+            role = roles.FirstOrDefault() ?? "Manager";
+
             // Fetch payments recorded by this employee
             paymentsCollected = await DbContext.Payments
                 .Include(p => p.Customer)
                 .Include(p => p.PaymentMethod)
                 .Where(p => p.CreatedById == employee.Id)
+                .ToListAsync();
+
+            // Fetch package renewals processed by this employee
+            renewalsRecorded = await DbContext.MonthlyPackageHistories
+                .Include(h => h.Customer)
+                .Include(h => h.Package)
+                .Where(h => h.CreatedById == employee.Id)
                 .ToListAsync();
         }
     }

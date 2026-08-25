@@ -1,15 +1,18 @@
-@page "/payments/new"
+@page "/payments/renew"
 
 @using IPSDesk.Data
 @using IPSDesk.Models
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
 @inject NavigationManager NavManager
+@inject IPSDesk.Services.ToastService ToastService
 
-<PageTitle>Record Payment - Diamond ISP</PageTitle>
+<PageTitle>Renew Package - Diamond ISP</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10;">
-    <h1>Record Payment</h1>
+    <h1>Renew Package</h1>
+    <p style="color: var(--text-secondary); margin-bottom: 16px;">Bill a customer for a new month and optionally upgrade their package.</p>
+    
     <div style="position: relative; max-width: 500px; margin-top: 16px;">
         <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Customer</label>
         
@@ -58,33 +61,32 @@
         <div class="glass-panel" style="animation: fadeIn 0.3s;">
             <h2>Customer Details</h2>
             <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Name:</span> <strong style="color: var(--text-primary);">@customer.Name</strong></div>
-            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Package:</span> <strong style="color: var(--accent-primary);">@(customer.CurrentPackage?.Name ?? "None")</strong></div>
-            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Monthly Fee:</span> <strong>Rs. @(customer.CurrentPackage?.MonthlyPrice.ToString("N0") ?? "0")</strong></div>
+            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Current Package:</span> <strong style="color: var(--accent-primary);">@(customer.CurrentPackage?.Name ?? "None")</strong></div>
             <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Current Balance (Outstanding):</span> <strong style="color: var(--accent-danger);">Rs. @customer.CurrentBalance.ToString("N0")</strong></div>
         </div>
 
         <div class="glass-panel" style="animation: fadeIn 0.3s;">
-            <h2>Payment Entry</h2>
-            <EditForm Model="@paymentModel" OnValidSubmit="ProcessPayment">
-                <DataAnnotationsValidator />
+            <h2>Renewal Details</h2>
+            <EditForm Model="@customer" OnValidSubmit="ProcessRenewal">
                 
                 <div style="margin-bottom: 16px;">
-                    <label>Amount Collected (Rs.)</label>
-                    <InputNumber @bind-Value="paymentModel.AmountCollected" class="form-control" />
-                </div>
-                
-                <div style="margin-bottom: 16px;">
-                    <label>Payment Method</label>
-                    <InputSelect @bind-Value="paymentModel.PaymentMethodId" class="form-control">
-                        <option value="">-- Select Method --</option>
-                        @if (paymentMethods != null)
+                    <label>Select Package</label>
+                    <InputSelect @bind-Value="selectedPackageId" class="form-control">
+                        @if (allPackages != null)
                         {
-                            @foreach (var pm in paymentMethods)
+                            @foreach (var pkg in allPackages)
                             {
-                                <option value="@pm.Id">@pm.Name</option>
+                                <option value="@pkg.Id">@pkg.Name (Rs. @pkg.MonthlyPrice.ToString("N0"))</option>
                             }
                         }
                     </InputSelect>
+                    @if (selectedPackageId != customer.CurrentPackageId)
+                    {
+                        <div style="margin-top: 8px; font-size: 0.85rem; color: var(--accent-danger); font-weight: 500; display: flex; align-items: center; gap: 4px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            This will change the customer's permanent package profile.
+                        </div>
+                    }
                 </div>
                 
                 <div style="margin-bottom: 16px;">
@@ -105,8 +107,7 @@
                     </div>
                 </div>
                 
-
-                <button type="submit" class="btn-primary" style="width: 100%;">Process Payment</button>
+                <button type="submit" class="btn-primary" style="width: 100%;">Charge & Renew Package</button>
             </EditForm>
         </div>
     </div>
@@ -119,9 +120,11 @@
     private string customerSearchText = string.Empty;
     private bool isCustomerDropdownOpen = false;
     private Customer? customer;
-    private Payment paymentModel = new();
-    private List<PaymentMethod>? paymentMethods;
+    
     private List<Customer>? allCustomers;
+    private List<Package>? allPackages;
+    
+    private Guid? selectedPackageId;
     
     private string selectedMonth = DateTime.Now.ToString("MMMM");
     private int selectedYear = DateTime.Now.Year;
@@ -139,13 +142,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        paymentMethods = await DbContext.PaymentMethods.Where(m => m.IsActive).ToListAsync();
-        
-        var defaultMethod = paymentMethods.FirstOrDefault(m => m.IsDefault);
-        if (defaultMethod != null)
-        {
-            paymentModel.PaymentMethodId = defaultMethod.Id;
-        }
+        allPackages = await DbContext.Packages.Where(p => p.IsActive).OrderBy(p => p.MonthlyPrice).ToListAsync();
         
         allCustomers = await DbContext.Customers
             .Include(c => c.CurrentPackage)
@@ -161,8 +158,6 @@
                 SelectCustomer(foundCustomer);
             }
         }
-        
-        paymentModel.BillingMonth = DateTime.Now.ToString("MMMM yyyy");
     }
     
     private void ToggleDropdown()
@@ -176,79 +171,58 @@
     private void SelectCustomer(Customer c)
     {
         customer = c;
+        selectedPackageId = c.CurrentPackageId;
         isCustomerDropdownOpen = false;
     }
 
-    private async Task ProcessPayment()
+    private async Task ProcessRenewal()
     {
-        if (customer == null || paymentModel.PaymentMethodId == Guid.Empty || paymentModel.AmountCollected < 0) return;
+        if (customer == null || selectedPackageId == null || selectedPackageId == Guid.Empty) return;
 
-        paymentModel.BillingMonth = $"{selectedMonth} {selectedYear}";
+        var packageToCharge = allPackages?.FirstOrDefault(p => p.Id == selectedPackageId);
+        if (packageToCharge == null) return;
+        
+        decimal expectedFee = packageToCharge.MonthlyPrice;
+        string billingMonthString = $"{selectedMonth} {selectedYear}";
 
-        // Determine Payment Type
-        decimal expectedFee = customer.CurrentPackage?.MonthlyPrice ?? 0;
-        if (paymentModel.AmountCollected >= expectedFee + customer.CurrentBalance)
-        {
-            paymentModel.PaymentType = "Full Payment";
-        }
-        else
-        {
-            paymentModel.PaymentType = "Partial Payment";
-        }
-
-        // Update Customer Balance
-        // A payment (Credit) DECREASES the customer's debt (balance).
-        decimal remaining = customer.CurrentBalance - paymentModel.AmountCollected;
-
-        // Update corresponding MonthlyPackageHistory if it exists
-        var history = await DbContext.MonthlyPackageHistories
-            .FirstOrDefaultAsync(h => h.CustomerId == customer.Id && h.BillingMonth == paymentModel.BillingMonth);
-            
-        if (history != null)
-        {
-            history.AmountPaid += paymentModel.AmountCollected;
-            history.RemainingBalance = history.PackagePrice - history.AmountPaid;
-            
-            if (history.RemainingBalance <= 0)
-            {
-                history.PaymentStatus = "Paid";
-                history.RemainingBalance = 0; // clamp to 0 for display
-            }
-            else if (history.AmountPaid > 0)
-            {
-                history.PaymentStatus = "Partially Paid";
-            }
-            else 
-            {
-                history.PaymentStatus = "Unpaid";
-            }
-            
-            DbContext.MonthlyPackageHistories.Update(history);
-        }
-
-        var paymentLedger = new CustomerLedger
+        // Increase Debt
+        customer.CurrentBalance += expectedFee;
+        
+        var feeLedger = new CustomerLedger
         {
             Id = Guid.NewGuid(),
             CustomerId = customer.Id,
             TransactionDate = DateTime.Now,
-            Description = $"Payment Received - {paymentModel.PaymentType}",
-            Debit = 0,
-            Credit = paymentModel.AmountCollected,
-            Balance = remaining
+            Description = $"Monthly Package Charge ({packageToCharge.Name}) - {billingMonthString}",
+            Debit = expectedFee,
+            Credit = 0,
+            Balance = customer.CurrentBalance
         };
-        DbContext.CustomerLedgers.Add(paymentLedger);
+        DbContext.CustomerLedgers.Add(feeLedger);
         
-        customer.CurrentBalance = remaining;
+        var history = new MonthlyPackageHistory
+        {
+            CustomerId = customer.Id,
+            PackageId = packageToCharge.Id,
+            BillingMonth = billingMonthString,
+            PackagePrice = expectedFee,
+            AmountPaid = 0,
+            RemainingBalance = customer.CurrentBalance,
+            PaymentStatus = "Unpaid",
+            RenewalDate = DateTime.Now
+        };
+        DbContext.MonthlyPackageHistories.Add(history);
+        
+        // Update Customer Profile if package changed
+        if (customer.CurrentPackageId != selectedPackageId)
+        {
+            customer.CurrentPackageId = selectedPackageId;
+        }
+        
         DbContext.Customers.Update(customer);
-
-        // Finalize Payment Record
-        paymentModel.CustomerId = customer.Id;
-        paymentModel.PaymentDate = DateTime.Now;
-        // paymentModel.CollectedById will be set when Auth is hooked up
-        DbContext.Payments.Add(paymentModel);
-
         await DbContext.SaveChangesAsync();
         
-        NavManager.NavigateTo($"/payments/receipt/{paymentModel.Id}");
+        ToastService.ShowSuccess("Customer renewed successfully.");
+        NavManager.NavigateTo($"/customers/profile/{customer.Id}");
     }
 }
