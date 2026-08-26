@@ -1,0 +1,302 @@
+@page "/employees/add"
+@page "/employees/edit/{Id}"
+
+@using IPSDesk.Models
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using IPSDesk.Services
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@(Id == null ? "Add Employee" : "Edit Employee") - Diamond ISP</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
+        <button class="btn-icon" style="color: var(--text-secondary); background: white; border: 1px solid var(--border-glass); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" @onclick='() => NavigationManager.NavigateTo("/employees")' title="Back to Employees">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
+        <div>
+            <h1 style="margin: 0; font-weight: 700; font-size: 1.5rem;">@(Id == null ? "Add New Employee" : "Edit Employee")</h1>
+            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 0.95rem;">Configure the details and access level for this employee.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div style="margin-bottom: 24px; padding: 16px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); font-size: 0.95rem; font-weight: 500;">
+            @errorMessage
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div style="padding: 40px; text-align: center; color: var(--text-secondary);">Loading...</div>
+    }
+    else
+    {
+        <EditForm Model="@userModel" OnValidSubmit="SaveUser" OnInvalidSubmit="HandleInvalidSubmit" style="display: flex; flex-direction: column;">
+            <DataAnnotationsValidator />
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">Full Name <span style="color: #ef4444;">*</span></label>
+                    <InputText @bind-Value="userModel.FullName" class="form-control" placeholder="e.g. Ali Khan" style="padding: 12px; font-size: 1.05rem; border-radius: 8px;" />
+                    <ValidationMessage For="@(() => userModel.FullName)" />
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">Email Address <span style="color: #ef4444;">*</span></label>
+                    <InputText @bind-Value="userModel.Email" type="email" class="form-control" placeholder="e.g. ali@ipsdesk.com" style="padding: 12px; font-size: 1.05rem; border-radius: 8px;" autocomplete="off" />
+                    <ValidationMessage For="@(() => userModel.Email)" />
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">Phone Number <span style="color: #ef4444;">*</span></label>
+                    <input type="text" @bind="userModel.PhoneNumber" @bind:event="oninput" maxlength="12" class="form-control" placeholder="xxxx-xxxxxxx" style="padding: 12px; font-size: 1.05rem; border-radius: 8px;" />
+                    <ValidationMessage For="@(() => userModel.PhoneNumber)" />
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">CNIC <span style="color: #ef4444;">*</span></label>
+                    <input type="text" @bind="userModel.Cnic" @bind:event="oninput" maxlength="15" class="form-control" placeholder="xxxxx-xxxxxxx-x" style="padding: 12px; font-size: 1.05rem; border-radius: 8px;" />
+                    <ValidationMessage For="@(() => userModel.Cnic)" />
+                </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px;">Home Address <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.85rem;">(Optional)</span></label>
+                <InputTextArea @bind-Value="userModel.HomeAddress" class="form-control" placeholder="Enter complete home address" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; resize: vertical; min-height: 80px;" />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                <div style="background: white; border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <label style="display: block; font-weight: 600; margin-bottom: 12px;">Role <span style="color: #ef4444;">*</span></label>
+                    <InputSelect @bind-Value="userModel.Role" class="form-control" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; background-color: #F9FAFB;">
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => userModel.Role)" />
+                </div>
+
+                <div style="background: white; border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <label style="display: block; font-weight: 600; margin-bottom: 12px;">Employee Status</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <label class="toggle-switch">
+                            <InputCheckbox @bind-Value="userModel.IsActive" />
+                            <span class="toggle-slider" style="background-color: var(--accent-success);"></span>
+                        </label>
+                        <span style="font-weight: 600; color: var(--text-primary);">
+                            @(userModel.IsActive ? "Active" : "Inactive")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            @if (Id == null)
+            {
+                <div style="background: white; border: 1px solid var(--border-glass); padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 32px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">Password <span style="color: #ef4444;">*</span></label>
+                    <div style="position: relative;">
+                        <InputText @bind-Value="userModel.Password" type="@(showPassword ? "text" : "password")" class="form-control" placeholder="Enter secure password" style="padding: 12px 48px 12px 12px; font-size: 1.05rem; border-radius: 8px;" autocomplete="new-password" />
+                        <button type="button" @onclick="() => showPassword = !showPassword" tabindex="-1" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px; display: flex; align-items: center; justify-content: center;">
+                            @if (showPassword)
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            }
+                            else
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            }
+                        </button>
+                    </div>
+                    <ValidationMessage For="@(() => userModel.Password)" />
+                </div>
+            }
+            
+            <div style="display: flex; gap: 16px; border-top: 1px solid var(--border-glass); padding-top: 24px;">
+                <button type="button" class="btn-secondary" style="padding: 16px; font-size: 1.1rem; font-weight: 600; border-radius: 12px; flex: 1;" @onclick='() => NavigationManager.NavigateTo("/employees")'>Cancel</button>
+                <button type="submit" class="btn-primary" style="padding: 16px; font-size: 1.1rem; font-weight: 700; border-radius: 12px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save Employee
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    private UserViewModel userModel = new() { Role = "Manager" };
+    private ApplicationUser? editingUser;
+    private bool showPassword = false;
+    private string errorMessage = "";
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(Id))
+        {
+            isLoading = true;
+            editingUser = await UserManager.FindByIdAsync(Id);
+            if (editingUser != null)
+            {
+                var roles = await UserManager.GetRolesAsync(editingUser);
+                var currentRole = roles.FirstOrDefault() ?? "Manager";
+                
+                userModel = new UserViewModel
+                {
+                    Id = editingUser.Id,
+                    FullName = editingUser.FullName,
+                    Email = editingUser.Email ?? "",
+                    PhoneNumber = editingUser.PhoneNumber ?? "",
+                    Cnic = editingUser.Cnic ?? "",
+                    HomeAddress = editingUser.HomeAddress ?? "",
+                    IsActive = editingUser.IsActive,
+                    Role = currentRole,
+                    Password = "" 
+                };
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/employees");
+            }
+            isLoading = false;
+        }
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        ToastService.ShowError("Please correct the highlighted fields before saving.");
+    }
+
+    private async Task SaveUser()
+    {
+        errorMessage = "";
+
+        // Ensure roles exist
+        var rolesToEnsure = new[] { "Admin", "Manager" };
+        foreach (var r in rolesToEnsure)
+        {
+            if (!await RoleManager.RoleExistsAsync(r))
+            {
+                await RoleManager.CreateAsync(new IdentityRole(r));
+            }
+        }
+        
+        if (!string.IsNullOrEmpty(Id) && editingUser != null)
+        {
+            editingUser.FullName = userModel.FullName;
+            editingUser.Email = userModel.Email;
+            editingUser.UserName = userModel.Email;
+            editingUser.PhoneNumber = userModel.PhoneNumber;
+            editingUser.Cnic = userModel.Cnic;
+            editingUser.HomeAddress = userModel.HomeAddress;
+            editingUser.IsActive = userModel.IsActive;
+            
+            var result = await UserManager.UpdateAsync(editingUser);
+            if (result.Succeeded)
+            {
+                var currentRoles = await UserManager.GetRolesAsync(editingUser);
+                await UserManager.RemoveFromRolesAsync(editingUser, currentRoles);
+                await UserManager.AddToRoleAsync(editingUser, userModel.Role);
+
+                ToastService.ShowSuccess("Employee updated successfully");
+                NavigationManager.NavigateTo("/employees");
+            }
+            else
+            {
+                errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(userModel.Password))
+            {
+                errorMessage = "Password is required when creating a new employee.";
+                return;
+            }
+            
+            var newUser = new ApplicationUser
+            {
+                FullName = userModel.FullName,
+                Email = userModel.Email,
+                UserName = userModel.Email, 
+                PhoneNumber = userModel.PhoneNumber,
+                Cnic = userModel.Cnic,
+                HomeAddress = userModel.HomeAddress,
+                IsActive = userModel.IsActive
+            };
+            
+            var result = await UserManager.CreateAsync(newUser, userModel.Password!);
+            if (result.Succeeded)
+            {
+                await UserManager.AddToRoleAsync(newUser, userModel.Role);
+
+                ToastService.ShowSuccess("Employee created successfully");
+                NavigationManager.NavigateTo("/employees");
+            }
+            else
+            {
+                errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+            }
+        }
+    }
+
+    public class UserViewModel
+    {
+        public string? Id { get; set; }
+        
+        [Required(ErrorMessage = "Full Name is required")]
+        public string FullName { get; set; } = "";
+        
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid Email Address")]
+        public string Email { get; set; } = "";
+        
+        private string _phoneNumber = "";
+        [Required(ErrorMessage = "Phone Number is required")]
+        [RegularExpression(@"^0\d{3}-\d{7}$", ErrorMessage = "Phone Number must start with 0 and be in format xxxx-xxxxxxx")]
+        public string PhoneNumber 
+        { 
+            get => _phoneNumber;
+            set
+            {
+                var val = new string((value ?? "").Where(char.IsDigit).ToArray());
+                if (val.Length > 0 && val[0] != '0') val = "0" + val;
+                if (val.Length > 4) val = val.Insert(4, "-");
+                if (val.Length > 12) val = val.Substring(0, 12);
+                _phoneNumber = val;
+            }
+        }
+        
+        public string? Password { get; set; }
+        
+        private string _cnic = "";
+        [Required(ErrorMessage = "CNIC is required")]
+        [RegularExpression(@"^\d{5}-\d{7}-\d{1}$", ErrorMessage = "CNIC must be in format xxxxx-xxxxxxx-x")]
+        public string Cnic 
+        { 
+            get => _cnic;
+            set
+            {
+                var val = new string((value ?? "").Where(char.IsDigit).ToArray());
+                if (val.Length > 5) val = val.Insert(5, "-");
+                if (val.Length > 13) val = val.Insert(13, "-");
+                if (val.Length > 15) val = val.Substring(0, 15);
+                _cnic = val;
+            }
+        }
+        
+        public string? HomeAddress { get; set; }
+        
+        public bool IsActive { get; set; } = true;
+
+        [Required(ErrorMessage = "Role is required")]
+        public string Role { get; set; } = "Manager";
+    }
+}

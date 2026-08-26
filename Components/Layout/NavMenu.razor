@@ -1,37 +1,55 @@
 <div class="nav-links">
-    <NavLink class="nav-item" href="" Match="NavLinkMatch.All">
-        <span>Dashboard</span>
-    </NavLink>
-    <NavLink class="nav-item" href="customers">
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <NavLink class="nav-item" href="" Match="NavLinkMatch.All" @onclick="HandleClick">
+                <span>Dashboard</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+    <NavLink class="nav-item" href="customers" @onclick="HandleClick">
         <span>Customers</span>
     </NavLink>
-    <NavLink class="nav-item" href="packages">
+    <NavLink class="nav-item" href="packages" @onclick="HandleClick">
         <span>Packages</span>
     </NavLink>
     
-    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: var(--text-secondary); margin: 24px 16px 8px 16px;">
-        Renewals
-    </div>
-    <NavLink class="nav-item" href="payments/renew">
+    <NavLink class="nav-item" href="payments/renew" @onclick="HandleClick">
         <span>Renew Package</span>
     </NavLink>
-    <NavLink class="nav-item" href="renewals/history">
-        <span>Renewal History</span>
-    </NavLink>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <NavLink class="nav-item" href="renewals/history" @onclick="HandleClick">
+                <span>Renewal History</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
     
-    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: var(--text-secondary); margin: 24px 16px 8px 16px;">
-        Finance
-    </div>
-    <NavLink class="nav-item" href="payments">
-        <span>Payments</span>
+    <NavLink class="nav-item" href="payments/new" @onclick="HandleClick">
+        <span>Record Payment</span>
     </NavLink>
-    <NavLink class="nav-item" href="payment-methods">
+    <NavLink class="nav-item" href="payments" Match="NavLinkMatch.All" @onclick="HandleClick">
+        <span>Payment History</span>
+    </NavLink>
+    <NavLink class="nav-item" href="payment-methods" @onclick="HandleClick">
         <span>Payment Methods</span>
     </NavLink>
-    <NavLink class="nav-item" href="employees">
+    <NavLink class="nav-item" href="employees" @onclick="HandleClick">
         <span>Employees</span>
     </NavLink>
-    <NavLink class="nav-item" href="reports">
+    <NavLink class="nav-item" href="reports" @onclick="HandleClick">
         <span>Reports</span>
     </NavLink>
 </div>
+
+@code {
+    [Parameter]
+    public EventCallback OnNavLinkClicked { get; set; }
+
+    private async Task HandleClick()
+    {
+        if (OnNavLinkClicked.HasDelegate)
+        {
+            await OnNavLinkClicked.InvokeAsync();
+        }
+    }
+}

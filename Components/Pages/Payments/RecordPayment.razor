@@ -8,43 +8,67 @@
 
 <PageTitle>Record Payment - Diamond ISP</PageTitle>
 
-<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10;">
-    <h1>Record Payment</h1>
-    <div style="position: relative; max-width: 500px; margin-top: 16px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Customer</label>
+<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-success); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+        <div style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success); padding: 12px; border-radius: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+        <div>
+            <h1 style="margin: 0; font-weight: 700;">Record Payment</h1>
+            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 0.95rem;">Enter a manual payment received from a customer to clear their outstanding balance.</p>
+        </div>
+    </div>
+    
+    <div style="position: relative; max-width: 600px; margin-top: 24px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Search & Select Customer</label>
         
-        <div class="form-control" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: white;" @onclick="ToggleDropdown">
-            @if (customer != null)
-            {
-                <span style="font-weight: 500;">@customer.ConnectionId - @customer.Name</span>
-            }
-            else
-            {
-                <span style="color: var(--text-secondary);">-- Click to select a customer --</span>
-            }
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(@(isCustomerDropdownOpen ? "180deg" : "0deg")); transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <div class="form-control" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: white; padding: 14px 20px; font-size: 1rem; border: 1px solid var(--border-glass); border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);" @onclick="ToggleDropdown">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                @if (customer != null)
+                {
+                    <span style="font-weight: 600; color: var(--text-primary);">@customer.ConnectionId - @customer.Name</span>
+                }
+                else
+                {
+                    <span style="color: var(--text-secondary);">Click to search for a customer...</span>
+                }
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(@(isCustomerDropdownOpen ? "180deg" : "0deg")); transition: transform 0.3s ease;"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
         
         @if (isCustomerDropdownOpen)
         {
             <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 40;" @onclick="() => isCustomerDropdownOpen = false"></div>
-            <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: white; border: 1px solid var(--border-glass); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); z-index: 50; overflow: hidden; display: flex; flex-direction: column; max-height: 300px;">
-                <div style="padding: 8px; border-bottom: 1px solid var(--border-glass);">
-                    <input type="text" @bind="customerSearchText" @bind:event="oninput" class="form-control" placeholder="Search by name or ID..." autofocus style="padding: 6px 12px; font-size: 0.9rem; border-radius: 6px;" />
+            <div style="position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: white; border: 1px solid var(--border-glass); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); z-index: 50; overflow: hidden; display: flex; flex-direction: column; max-height: 350px;">
+                <div style="padding: 12px; border-bottom: 1px solid var(--border-glass); background: #f8fafc;">
+                    <input type="text" @bind="customerSearchText" @bind:event="oninput" class="form-control" placeholder="Search by Name or Connection ID..." autofocus style="padding: 10px 16px; font-size: 0.95rem; border-radius: 8px; border: 1px solid #e2e8f0; width: 100%; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);" />
                 </div>
                 <div style="overflow-y: auto;">
                     @if (filteredCustomers != null && filteredCustomers.Any())
                     {
                         @foreach (var c in filteredCustomers)
                         {
-                            <div @onmousedown="() => SelectCustomer(c)" style="padding: 10px 16px; cursor: pointer; border-bottom: 1px solid var(--border-glass); background-color: @(customer?.Id == c.Id ? "rgba(99,102,241,0.05)" : "transparent");" onmouseover="this.style.backgroundColor='rgba(99,102,241,0.05)'" onmouseout="this.style.backgroundColor='@(customer?.Id == c.Id ? "rgba(99,102,241,0.05)" : "transparent")'">
-                                <span style="font-weight: 500;">@c.ConnectionId - @c.Name</span>
+                            <div @onmousedown="() => SelectCustomer(c)" style="padding: 14px 20px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s;" class="customer-dropdown-item">
+                                <div>
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">@c.Name</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Conn ID: @c.ConnectionId</div>
+                                </div>
+                                @if (c.CurrentPackage != null)
+                                {
+                                    <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                                        @c.CurrentPackage.Name
+                                    </div>
+                                }
                             </div>
                         }
                     }
                     else
                     {
-                        <div style="padding: 16px; text-align: center; color: var(--text-secondary);">No customers found.</div>
+                        <div style="padding: 24px; text-align: center; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <span>No customers found matching "@customerSearchText"</span>
+                        </div>
                     }
                 </div>
             </div>
@@ -54,63 +78,124 @@
 
 @if (customer != null)
 {
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <div class="glass-panel" style="animation: fadeIn 0.3s;">
-            <h2>Customer Details</h2>
-            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Name:</span> <strong style="color: var(--text-primary);">@customer.Name</strong></div>
-            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Package:</span> <strong style="color: var(--accent-primary);">@(customer.CurrentPackage?.Name ?? "None")</strong></div>
-            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Monthly Fee:</span> <strong>Rs. @(customer.CurrentPackage?.MonthlyPrice.ToString("N0") ?? "0")</strong></div>
-            <div style="margin-bottom: 12px;"><span style="color: var(--text-secondary);">Current Balance (Outstanding):</span> <strong style="color: var(--accent-danger);">Rs. @customer.CurrentBalance.ToString("N0")</strong></div>
-        </div>
-
-        <div class="glass-panel" style="animation: fadeIn 0.3s;">
-            <h2>Payment Entry</h2>
-            <EditForm Model="@paymentModel" OnValidSubmit="ProcessPayment">
-                <DataAnnotationsValidator />
-                
-                <div style="margin-bottom: 16px;">
-                    <label>Amount Collected (Rs.)</label>
-                    <InputNumber @bind-Value="paymentModel.AmountCollected" class="form-control" />
-                </div>
-                
-                <div style="margin-bottom: 16px;">
-                    <label>Payment Method</label>
-                    <InputSelect @bind-Value="paymentModel.PaymentMethodId" class="form-control">
-                        <option value="">-- Select Method --</option>
-                        @if (paymentMethods != null)
-                        {
-                            @foreach (var pm in paymentMethods)
-                            {
-                                <option value="@pm.Id">@pm.Name</option>
-                            }
-                        }
-                    </InputSelect>
-                </div>
-                
-                <div style="margin-bottom: 16px;">
-                    <label>Billing Month</label>
-                    <div style="display: flex; gap: 8px;">
-                        <InputSelect @bind-Value="selectedMonth" class="form-control" style="flex: 2;">
-                            @foreach (var month in months)
-                            {
-                                <option value="@month">@month</option>
-                            }
-                        </InputSelect>
-                        <InputSelect @bind-Value="selectedYear" class="form-control" style="flex: 1;">
-                            @for (int i = DateTime.Now.Year - 2; i <= DateTime.Now.Year + 2; i++)
-                            {
-                                <option value="@i">@i</option>
-                            }
-                        </InputSelect>
+    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px; animation: slideUpFade 0.4s ease-out forwards;">
+        <!-- Customer Details Card -->
+        <div class="glass-panel" style="padding: 0; overflow: hidden;">
+            <div style="padding: 24px; background: #f8fafc; border-bottom: 1px solid var(--border-glass);">
+                <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Customer Profile
+                </h2>
+            </div>
+            
+            <div style="padding: 24px;">
+                <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px;">
+                    <div style="background: rgba(99, 102, 241, 0.1); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6366f1; font-weight: 700; font-size: 1.2rem;">
+                        @(customer.Name.Substring(0, 1).ToUpper())
+                    </div>
+                    <div>
+                        <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">@customer.Name</div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">Connection ID: @customer.ConnectionId</div>
                     </div>
                 </div>
                 
+                <div style="background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Current Package</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-primary); display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                            @(customer.CurrentPackage?.Name ?? "None")
+                        </div>
+                        <span style="font-size: 0.95rem; color: var(--text-primary);">Rs. @(customer.CurrentPackage?.MonthlyPrice.ToString("N0") ?? "0") / mo</span>
+                    </div>
+                </div>
 
-                <button type="submit" class="btn-primary" style="width: 100%;">Process Payment</button>
-            </EditForm>
+                <div style="background: #fff1f2; border: 1px solid #ffe4e6; padding: 16px; border-radius: 12px;">
+                    <div style="color: #e11d48; font-size: 0.85rem; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Current Balance (Outstanding)</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #be123c;">
+                        Rs. @customer.CurrentBalance.ToString("N0")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Entry Card -->
+        <div class="glass-panel" style="padding: 0; overflow: hidden; border-top: 4px solid var(--accent-success);">
+            <div style="padding: 24px; border-bottom: 1px solid var(--border-glass);">
+                <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                    Payment Entry
+                </h2>
+            </div>
+
+            <div style="padding: 24px;">
+                <EditForm Model="@paymentModel" OnValidSubmit="ProcessPayment">
+                    <DataAnnotationsValidator />
+                    
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Amount Collected (Rs.)</label>
+                        <InputNumber @bind-Value="paymentModel.AmountCollected" class="form-control" style="padding: 12px; font-size: 1.1rem; border-radius: 8px; font-weight: 600; color: var(--accent-success);" />
+                    </div>
+                    
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Payment Method</label>
+                        <InputSelect @bind-Value="paymentModel.PaymentMethodId" class="form-control" style="padding: 12px; font-size: 1rem; border-radius: 8px;">
+                            <option value="">-- Select Method --</option>
+                            @if (paymentMethods != null)
+                            {
+                                @foreach (var pm in paymentMethods)
+                                {
+                                    <option value="@pm.Id">@pm.Name</option>
+                                }
+                            }
+                        </InputSelect>
+                    </div>
+                    
+                    <div style="margin-bottom: 32px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Billing Period (Optional)</label>
+                        <div style="display: flex; gap: 12px;">
+                            <InputSelect @bind-Value="selectedMonth" class="form-control" style="flex: 2; padding: 12px; font-size: 1rem; border-radius: 8px;">
+                                <option value="">-- Clear Month --</option>
+                                @foreach (var month in months)
+                                {
+                                    <option value="@month">@month</option>
+                                }
+                            </InputSelect>
+                            <InputSelect @bind-Value="selectedYear" class="form-control" style="flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px;">
+                                @for (int i = DateTime.Now.Year - 2; i <= DateTime.Now.Year + 2; i++)
+                                {
+                                    <option value="@i">@i</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary" style="width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39); background-color: var(--accent-success);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Record Payment
+                    </button>
+                </EditForm>
+            </div>
         </div>
     </div>
 }
+
+<style>
+    .customer-dropdown-item:hover {
+        background-color: #f8fafc !important;
+    }
+    
+    @@keyframes slideUpFade {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 
 @code {
     [SupplyParameterFromQuery]

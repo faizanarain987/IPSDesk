@@ -21,6 +21,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
+    .AddClaimsPrincipalFactory<UserClaimsPrincipalFactory<ApplicationUser, IdentityRole>>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddTransient<IEmailSender<ApplicationUser>, IPSDesk.Services.EmailSender>();

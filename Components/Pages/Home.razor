@@ -2,83 +2,280 @@
 
 @using IPSDesk.Data
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Dashboard - Diamond ISP</PageTitle>
 
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px;">
-    <div class="glass-panel" style="border-left: 4px solid var(--accent-primary);">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Customers</div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 8px;">@totalCustomers</div>
-    </div>
+<!-- Top Header Section -->
+<div style="margin-bottom: 24px;">
+    <h1 style="font-size: 1.75rem; font-weight: 800; color: #111827; margin: 0 0 4px 0;">Dashboard</h1>
+    <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">Welcome back, Faizan! Here's what's happening today.</p>
+</div>
+
+<!-- 4 Top Cards Row -->
+<div class="grid-cols-4" style="margin-bottom: 24px; animation: slideUpFade 0.3s ease-out forwards;">
     
-    <div class="glass-panel" style="border-left: 4px solid var(--accent-success);">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Active Connections</div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 8px;">@activeCustomers</div>
-    </div>
-    
-    <div class="glass-panel" style="border-left: 4px solid var(--accent-warning);">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Total Outstanding</div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 8px; color: var(--accent-warning);">
-            Rs. @totalOutstanding.ToString("N0")
+    <!-- Total Customers -->
+    <div class="glass-panel" style="padding: 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div style="color: #4b5563; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Total Customers</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">@totalCustomers</div>
+                <div style="color: #6b7280; font-size: 0.8rem; margin-top: 8px;">+@newCustomersThisMonth this month</div>
+            </div>
+            <div style="background: #eff6ff; color: #3b82f6; padding: 12px; border-radius: 50%;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
         </div>
     </div>
     
-    <div class="glass-panel" style="border-left: 4px solid #8b5cf6;">
-        <div style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase;">Current Month Revenue</div>
-        <div style="font-size: 2rem; font-weight: 700; margin-top: 8px; color: #8b5cf6;">
-            Rs. @monthlyRevenue.ToString("N0")
+    <!-- Active Customers -->
+    <div class="glass-panel" style="padding: 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div style="color: #059669; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Active Customers</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #059669; line-height: 1;">@activeCustomers</div>
+                <div style="color: #6b7280; font-size: 0.8rem; margin-top: 8px;">@(totalCustomers > 0 ? (activeCustomers * 100 / totalCustomers) : 0)% of total</div>
+            </div>
+            <div style="background: #ecfdf5; color: #10b981; padding: 12px; border-radius: 50%;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Monthly Revenue -->
+    <div class="glass-panel" style="padding: 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div style="color: #d97706; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Monthly Revenue</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #d97706; line-height: 1;">Rs. @monthlyRevenue.ToString("N0")</div>
+                <div style="color: #6b7280; font-size: 0.8rem; margin-top: 8px;">
+                    @if (lastMonthRevenue > 0)
+                    {
+                        var diff = ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
+                        <span>@(diff >= 0 ? "+" : "")@diff.ToString("0.0")% from last month</span>
+                    }
+                    else
+                    {
+                        <span>+0% from last month</span>
+                    }
+                </div>
+            </div>
+            <div style="background: #fffbeb; color: #f59e0b; padding: 12px; border-radius: 50%;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="8"></line><line x1="10" y1="8" x2="18" y2="8"></line><line x1="6" y1="12" x2="6" y2="12"></line><line x1="10" y1="12" x2="18" y2="12"></line><line x1="6" y1="16" x2="6" y2="16"></line><line x1="10" y1="16" x2="18" y2="16"></line></svg>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Outstanding Balance -->
+    <div class="glass-panel" style="padding: 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div style="color: #4f46e5; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Outstanding Balance</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #7c3aed; line-height: 1;">Rs. @totalOutstanding.ToString("N0")</div>
+                <div style="color: #6b7280; font-size: 0.8rem; margin-top: 8px;">
+                    <a href="/customers" style="color: #6b7280; text-decoration: none;">View all dues</a>
+                </div>
+            </div>
+            <div style="background: #f3e8ff; color: #a855f7; padding: 12px; border-radius: 50%;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            </div>
         </div>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-    <div class="glass-panel">
-        <h2>Customers by Package</h2>
-        <table class="premium-table">
-            <thead>
-                <tr>
-                    <th>Package</th>
-                    <th>Count</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var stat in packageStats)
-                {
-                    <tr>
-                        <td>@stat.PackageName</td>
-                        <td>@stat.Count</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<!-- Middle Charts Row -->
+<div class="grid-cols-charts" style="margin-bottom: 24px; animation: slideUpFade 0.4s ease-out forwards;">
+    
+    <!-- Customers by Package -->
+    <div class="glass-panel" style="padding: 20px; background: white; border-radius: 12px; border: 1px solid #e5e7eb; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #3b82f6;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+                Customers by Package
+            </h2>
+            <span style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: #4b5563; background: #f9fafb;">
+                Overall
+            </span>
+        </div>
+        
+        <div class="chart-flex-container">
+            @if (packageStats != null && packageStats.Any())
+            {
+                <div style="position: relative; width: 200px; height: 200px;">
+                    <canvas id="packageChart"></canvas>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #111827; line-height: 1;">@packageStats.Sum(p => p.Count)</div>
+                        <div style="font-size: 0.8rem; color: #6b7280; font-weight: 500;">Total</div>
+                    </div>
+                </div>
+                
+                <!-- Custom Legend -->
+                <div style="flex: 1; margin-left: 24px;">
+                    @{
+                        string[] colors = { "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e" };
+                        int i = 0;
+                        int total = packageStats.Sum(p => p.Count);
+                    }
+                    @foreach (var stat in packageStats)
+                    {
+                        var color = colors[i % colors.Length];
+                        var pct = total > 0 ? (stat.Count * 100 / total) : 0;
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.9rem;">
+                            <div style="display: flex; align-items: center; gap: 8px; color: #4b5563;">
+                                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: @color;"></div>
+                                @stat.PackageName
+                            </div>
+                            <div style="color: #6b7280;">
+                                <span style="font-weight: 600; color: #111827; margin-right: 4px;">@stat.Count</span> (@pct%)
+                            </div>
+                        </div>
+                        i++;
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="text-align: center; color: var(--text-secondary); width: 100%;">
+                    <p>No package data available.</p>
+                </div>
+            }
+        </div>
     </div>
     
-    <div class="glass-panel">
-        <h2>Recent Payments</h2>
-        <table class="premium-table">
+    <!-- Monthly Revenue Overview -->
+    <div class="glass-panel" style="padding: 20px; background: white; border-radius: 12px; border: 1px solid #e5e7eb; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #3b82f6;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                Monthly Revenue Overview
+            </h2>
+            <select @onchange="OnRevenueFilterChanged" style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: #4b5563; background: white;">
+                <option value="1">This Month</option>
+                <option value="3">Last 3 Months</option>
+                <option value="6">Last 6 Months</option>
+                <option value="9">Last 9 Months</option>
+                <option value="12">Last 12 Months</option>
+            </select>
+        </div>
+        <div style="flex: 1; position: relative; width: 100%; min-height: 250px;">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- 4 Mini Cards Row -->
+<div class="grid-cols-4" style="margin-bottom: 24px; animation: slideUpFade 0.5s ease-out forwards;">
+    
+    <div class="glass-panel" style="padding: 16px 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 500; margin-bottom: 4px;">Total Connections</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #111827;">@totalCustomers</div>
+        </div>
+        <div style="background: #eff6ff; color: #3b82f6; padding: 8px; border-radius: 50%;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+        </div>
+    </div>
+
+    <div class="glass-panel" style="padding: 16px 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 500; margin-bottom: 4px;">Renewals (This Month)</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #111827;">@renewalsThisMonth</div>
+        </div>
+        <div style="background: #ecfdf5; color: #10b981; padding: 8px; border-radius: 50%;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+        </div>
+    </div>
+
+    <div class="glass-panel" style="padding: 16px 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 500; margin-bottom: 4px;">Expired Connections</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #111827;">@expiredConnections</div>
+        </div>
+        <div style="background: #fef2f2; color: #ef4444; padding: 8px; border-radius: 50%;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+    </div>
+
+    <div class="glass-panel" style="padding: 16px 20px; border-radius: 12px; background: white; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <div style="color: #6b7280; font-size: 0.8rem; font-weight: 500; margin-bottom: 4px;">Active Packages</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #111827;">@activePackages</div>
+        </div>
+        <div style="background: #ecfdf5; color: #10b981; padding: 8px; border-radius: 50%;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Payments Table -->
+<div class="glass-panel" style="padding: 0; overflow: hidden; border-radius: 12px; background: white; border: 1px solid #e5e7eb; animation: slideUpFade 0.6s ease-out forwards;">
+    <div style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #111827;">Recent Payments</h2>
+        <button class="btn-icon" @onclick='() => NavManager.NavigateTo("/payments")' style="font-size: 0.8rem; padding: 6px 12px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; font-weight: 600; color: #3b82f6;">View All</button>
+    </div>
+    
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Customer</th>
-                    <th>Amount</th>
-                    <th>Processed By</th>
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <th style="padding: 16px 24px; text-align: left; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #6b7280;">Date</th>
+                    <th style="padding: 16px 24px; text-align: left; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #6b7280;">Connection ID</th>
+                    <th style="padding: 16px 24px; text-align: left; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #6b7280;">Customer</th>
+                    <th style="padding: 16px 24px; text-align: left; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #6b7280;">Amount</th>
+                    <th style="padding: 16px 24px; text-align: left; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #6b7280;">Payment Method</th>
+                    <th style="padding: 16px 24px; text-align: left; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #6b7280;">Collected By</th>
+                    <th style="padding: 16px 24px; text-align: center; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #6b7280;">Receipt</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var payment in recentPayments)
                 {
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@payment.Date.ToString("MMM dd, yyyy")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@(payment.ConnectionId ?? "N/A")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@payment.CustomerName</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; font-weight: 600; color: #059669;">Rs. @payment.Amount.ToString("N0")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@(payment.PaymentMethod ?? "Unknown")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@(payment.ProcessedBy ?? "System")</td>
+                        <td style="padding: 16px 24px; text-align: center;">
+                            <button class="btn-icon" style="color: #3b82f6; background: #eff6ff; border-radius: 6px; padding: 6px;" @onclick='() => NavManager.NavigateTo($"/payments/receipt/{payment.Id}")' title="Download Receipt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                @if (!recentPayments.Any())
+                {
                     <tr>
-                        <td>@payment.Date.ToString("MMM dd")</td>
-                        <td>@payment.CustomerName</td>
-                        <td style="color: var(--accent-success);">Rs. @payment.Amount.ToString("N0")</td>
-                        <td><span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(0,0,0,0.04); padding: 2px 8px; border-radius: 12px;">@(payment.ProcessedBy ?? "System")</span></td>
+                        <td colspan="7" style="padding: 24px; text-align: center; color: var(--text-secondary);">No recent payments</td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
+
+<style>
+    @@keyframes slideUpFade {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Overall background styling to match the light theme of the screenshot */
+    body {
+        background-color: #f8fafc;
+    }
+</style>
 
 @code {
     private int totalCustomers;
@@ -86,20 +283,62 @@
     private decimal totalOutstanding;
     private decimal monthlyRevenue;
     
+    // New metrics
+    private int newCustomersThisMonth;
+    private decimal lastMonthRevenue;
+    private int renewalsThisMonth;
+    private int expiredConnections;
+    private int activePackages;
+    
+    private int revenueFilter = 1;
+    
     private List<PackageStat> packageStats = new();
     private List<RecentPayment> recentPayments = new();
+    private List<DailyRevenue> dailyRevenues = new();
+    
+    private bool chartsRendered = false;
+    
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
     
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateTask;
+        if (!authState.User.IsInRole("Admin"))
+        {
+            NavManager.NavigateTo("/customers");
+            return;
+        }
+        
+        var now = DateTime.Now;
+        string currentMonth = now.ToString("MMMM yyyy");
+        string lastMonth = now.AddMonths(-1).ToString("MMMM yyyy");
+        
+        // Basic metrics
         totalCustomers = await DbContext.Customers.CountAsync();
         activeCustomers = await DbContext.Customers.CountAsync(c => c.IsActive);
         totalOutstanding = await DbContext.Customers.SumAsync(c => c.CurrentBalance);
+        expiredConnections = await DbContext.Customers.CountAsync(c => !c.IsActive);
+        activePackages = await DbContext.Packages.CountAsync();
         
-        string currentMonth = DateTime.Now.ToString("MMMM yyyy");
-        monthlyRevenue = await DbContext.Payments
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
+        newCustomersThisMonth = await DbContext.Customers.CountAsync(c => c.CreatedAt >= startOfMonth);
+        
+        // Revenue metrics
+        var allCurrentMonthPayments = await DbContext.Payments
             .Where(p => p.BillingMonth == currentMonth)
+            .ToListAsync();
+            
+        monthlyRevenue = allCurrentMonthPayments.Sum(p => p.AmountCollected);
+        renewalsThisMonth = allCurrentMonthPayments.Count;
+        
+        lastMonthRevenue = await DbContext.Payments
+            .Where(p => p.BillingMonth == lastMonth)
             .SumAsync(p => p.AmountCollected);
             
+        await LoadRevenueData();
+            
+        // Package stats for donut
         var packages = await DbContext.Packages.ToListAsync();
         foreach(var pkg in packages)
         {
@@ -110,18 +349,129 @@
             }
         }
         
+        // Recent Payments table
         recentPayments = await DbContext.Payments
             .Include(p => p.Customer)
+            .Include(p => p.PaymentMethod)
             .OrderByDescending(p => p.PaymentDate)
             .Take(5)
             .Select(p => new RecentPayment 
             { 
+                Id = p.Id,
                 Date = p.PaymentDate, 
+                ConnectionId = p.Customer != null ? p.Customer.ConnectionId : null,
                 CustomerName = p.Customer != null ? p.Customer.Name : "Unknown", 
                 Amount = p.AmountCollected,
+                PaymentMethod = p.PaymentMethod != null ? p.PaymentMethod.Name : "Unknown",
                 ProcessedBy = p.CreatedByName
             })
             .ToListAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!chartsRendered && (packageStats.Any() || dailyRevenues.Any()))
+        {
+            chartsRendered = true;
+            try
+            {
+                // Render Donut Chart
+                if (packageStats.Any())
+                {
+                    var pkgLabels = packageStats.Select(p => p.PackageName).ToArray();
+                    var pkgData = packageStats.Select(p => p.Count).ToArray();
+                    await JSRuntime.InvokeVoidAsync("renderDonutChart", "packageChart", pkgLabels, pkgData);
+                }
+                
+                // Render Line Chart
+                if (dailyRevenues.Any())
+                {
+                    string[] lineLabels;
+                    if (revenueFilter == 1)
+                    {
+                        lineLabels = dailyRevenues.Select(d => d.Date.ToString("dd MMM")).ToArray();
+                    }
+                    else
+                    {
+                        lineLabels = dailyRevenues.Select(d => d.Date.ToString("MMM yyyy")).ToArray();
+                    }
+                    var lineData = dailyRevenues.Select(d => d.Amount).ToArray();
+                    await JSRuntime.InvokeVoidAsync("renderLineChart", "revenueChart", lineLabels, lineData);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error rendering charts: {ex.Message}");
+            }
+        }
+    }
+    
+    private async Task OnRevenueFilterChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int months))
+        {
+            revenueFilter = months;
+            await LoadRevenueData();
+            
+            // Re-render chart
+            if (dailyRevenues.Any())
+            {
+                string[] lineLabels;
+                if (revenueFilter == 1)
+                {
+                    lineLabels = dailyRevenues.Select(d => d.Date.ToString("dd MMM")).ToArray();
+                }
+                else
+                {
+                    lineLabels = dailyRevenues.Select(d => d.Date.ToString("MMM yyyy")).ToArray();
+                }
+                var lineData = dailyRevenues.Select(d => d.Amount).ToArray();
+                await JSRuntime.InvokeVoidAsync("renderLineChart", "revenueChart", lineLabels, lineData);
+            }
+        }
+    }
+    
+    private async Task LoadRevenueData()
+    {
+        var now = DateTime.Now;
+        if (revenueFilter == 1)
+        {
+            var startOfMonth = new DateTime(now.Year, now.Month, 1);
+            var payments = await DbContext.Payments
+                .Where(p => p.PaymentDate >= startOfMonth)
+                .ToListAsync();
+                
+            var daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+            var allDays = Enumerable.Range(1, daysInMonth)
+                .Select(d => new DateTime(now.Year, now.Month, d))
+                .ToList();
+                
+            dailyRevenues = allDays.Select(day => new DailyRevenue
+            {
+                Date = day,
+                Amount = payments.Where(p => p.PaymentDate.Date == day).Sum(p => p.AmountCollected)
+            }).ToList();
+        }
+        else
+        {
+            var startDate = new DateTime(now.Year, now.Month, 1).AddMonths(-revenueFilter + 1);
+            
+            var payments = await DbContext.Payments
+                .Where(p => p.PaymentDate >= startDate)
+                .ToListAsync();
+                
+            var allMonths = Enumerable.Range(0, revenueFilter)
+                .Select(m => new DateTime(now.Year, now.Month, 1).AddMonths(-m))
+                .OrderBy(d => d)
+                .ToList();
+                
+            dailyRevenues = allMonths.Select(month => new DailyRevenue
+            {
+                Date = month,
+                Amount = payments.Where(p => p.PaymentDate.Year == month.Year && p.PaymentDate.Month == month.Month)
+                                 .Sum(p => p.AmountCollected)
+            }).ToList();
+        }
     }
     
     private class PackageStat
@@ -130,11 +480,20 @@
         public int Count { get; set; }
     }
     
-    private class RecentPayment
+    private class DailyRevenue
     {
         public DateTime Date { get; set; }
+        public decimal Amount { get; set; }
+    }
+    
+    private class RecentPayment
+    {
+        public Guid Id { get; set; }
+        public DateTime Date { get; set; }
+        public string? ConnectionId { get; set; }
         public string CustomerName { get; set; } = "";
         public decimal Amount { get; set; }
+        public string PaymentMethod { get; set; } = "";
         public string? ProcessedBy { get; set; }
     }
 }

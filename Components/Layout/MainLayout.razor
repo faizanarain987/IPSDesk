@@ -13,17 +13,23 @@
 <ToastContainer />
 
 <div class="app-container">
-    <div class="sidebar">
+    <div class="sidebar-overlay @(isSidebarOpen ? "open" : "")" @onclick="ToggleSidebar"></div>
+    <div class="sidebar @(isSidebarOpen ? "open" : "")">
         <a href="/" class="sidebar-brand" style="display: flex; align-items: center; gap: 12px; padding: 12px 24px; text-decoration: none; color: inherit; cursor: pointer;">
             <img src="/images/isp-logo.jpg" alt="ISP Logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />
             <span style="font-weight: 700; font-size: 1.25rem;">Diamond ISP</span>
         </a>
-        <NavMenu />
+        <NavMenu OnNavLinkClicked="CloseSidebar" />
     </div>
 
     <main class="main-content">
         <header class="top-bar">
-            <GlobalSearchBar />
+            <div style="display: flex; align-items: center;">
+                <button class="mobile-menu-btn" @onclick="ToggleSidebar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <GlobalSearchBar />
+            </div>
             
             <UserProfileDropdown />
         </header>
@@ -41,6 +47,18 @@
 </div>
 
 @code {
+    private bool isSidebarOpen = false;
+
+    private void ToggleSidebar()
+    {
+        isSidebarOpen = !isSidebarOpen;
+    }
+
+    private void CloseSidebar()
+    {
+        isSidebarOpen = false;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -57,6 +75,10 @@
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                 var appUser = await userManager.FindByIdAsync(userId);
                 CurrentUser.UserName = appUser?.FullName ?? user.Identity.Name;
+                if (appUser != null)
+                {
+                    CurrentUser.IsAdmin = await userManager.IsInRoleAsync(appUser, "Admin");
+                }
             }
         }
     }

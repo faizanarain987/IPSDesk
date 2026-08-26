@@ -1,5 +1,6 @@
 @page "/customers/add"
 @page "/customers/edit/{Id:guid}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
 
 @using IPSDesk.Data
 @using IPSDesk.Models
