@@ -11,7 +11,7 @@
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
 
-<PageTitle>@(Id == null ? "Add Employee" : "Edit Employee") - Diamond ISP</PageTitle>
+<PageTitle>@(Id == null ? "Add Employee" : "Edit Employee") - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
@@ -75,8 +75,10 @@
                 <div style="background: white; border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                     <label style="display: block; font-weight: 600; margin-bottom: 12px;">Role <span style="color: #ef4444;">*</span></label>
                     <InputSelect @bind-Value="userModel.Role" class="form-control" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; background-color: #F9FAFB;">
-                        <option value="Admin">Admin</option>
-                        <option value="Manager">Manager</option>
+                        @foreach (var roleName in availableRoles)
+                        {
+                            <option value="@roleName">@roleName</option>
+                        }
                     </InputSelect>
                     <ValidationMessage For="@(() => userModel.Role)" />
                 </div>
@@ -136,9 +138,18 @@
     private bool showPassword = false;
     private string errorMessage = "";
     private bool isLoading = false;
+    private List<string> availableRoles = new();
 
     protected override async Task OnInitializedAsync()
     {
+        availableRoles = await RoleManager.Roles.Select(r => r.Name).Where(n => n != null).Cast<string>().ToListAsync();
+        if (!availableRoles.Any()) availableRoles.Add("Admin");
+        
+        if (string.IsNullOrEmpty(userModel.Role) || !availableRoles.Contains(userModel.Role))
+        {
+            userModel.Role = availableRoles.FirstOrDefault() ?? "Admin";
+        }
+
         if (!string.IsNullOrEmpty(Id))
         {
             isLoading = true;
@@ -177,16 +188,6 @@
     private async Task SaveUser()
     {
         errorMessage = "";
-
-        // Ensure roles exist
-        var rolesToEnsure = new[] { "Admin", "Manager" };
-        foreach (var r in rolesToEnsure)
-        {
-            if (!await RoleManager.RoleExistsAsync(r))
-            {
-                await RoleManager.CreateAsync(new IdentityRole(r));
-            }
-        }
         
         if (!string.IsNullOrEmpty(Id) && editingUser != null)
         {

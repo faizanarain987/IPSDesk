@@ -6,7 +6,7 @@
 @inject ApplicationDbContext DbContext
 @inject NavigationManager NavManager
 
-<PageTitle>Customer Profile - Diamond ISP</PageTitle>
+<PageTitle>Customer Profile - Diamond Net</PageTitle>
 
 @if (customer == null)
 {
@@ -41,6 +41,10 @@ else
                             </div>
                             <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: #DBEAFE; color: #1E293B; font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.05);">
                                 @(customer.CurrentPackage?.Name ?? "No Package")
+                                @if (IsPackageExpired)
+                                {
+                                    <span style="margin-left: 8px; background: #fee2e2; color: #ef4444; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Expired</span>
+                                }
                             </div>
                         </div>
                     </div>
@@ -53,7 +57,7 @@ else
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px;">
-                            <button class="btn-success" @onclick='() => NavManager.NavigateTo($"/payments/renew?connectionId={customer.ConnectionId}")'>Renew Package</button>
+                            <button class="btn-success" @onclick='() => NavManager.NavigateTo($"/customers/billinghub/{customer.Id}")'>Renew Package</button>
                             <button class="btn-primary" @onclick='() => NavManager.NavigateTo($"/payments/new?connectionId={customer.ConnectionId}")'>Record Payment</button>
                         </div>
                     </div>
@@ -104,6 +108,14 @@ else
                     Connection Date
                 </span>
                 <div style="font-weight: 500; margin-top: 4px;">@customer.ConnectionDate.ToString("MMM dd, yyyy")</div>
+            </div>
+
+            <div>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+                    Sector / Area / Zone
+                </span>
+                <div style="font-weight: 500; margin-top: 4px;">@(string.IsNullOrEmpty(customer.Area) ? "N/A" : customer.Area)</div>
             </div>
             <div style="grid-column: 1 / -1;">
                 <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
@@ -170,8 +182,8 @@ else
                     <thead style="position: sticky; top: 0; background: white; z-index: 1;">
                         <tr>
                             <th style="background: #F9FAFB;">#</th>
-                            <th style="background: #F9FAFB;">Pkg Month</th>
                             <th style="background: #F9FAFB;">Package</th>
+                            <th style="background: #F9FAFB;">Discount</th>
                             <th style="background: #F9FAFB;">Amount</th>
                             <th style="background: #F9FAFB;">Date of Renew</th>
                             <th style="background: #F9FAFB;">Renewed By</th>
@@ -183,8 +195,8 @@ else
                         {
                             <tr>
                                 <td>@index</td>
-                                <td>@history.BillingMonth</td>
                                 <td>@(history.Package?.Name ?? "N/A")</td>
+                                <td>Rs. @history.Discount.ToString("N0")</td>
                                 <td>Rs. @history.PackagePrice.ToString("N0")</td>
                                 <td>@history.RenewalDate.ToString("MMM dd, yyyy")</td>
                                 <td><span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(0,0,0,0.04); padding: 2px 8px; border-radius: 12px;">@(history.CreatedByName ?? "System")</span></td>
@@ -204,6 +216,18 @@ else
     public Guid Id { get; set; }
 
     private Customer? customer;
+
+    private bool IsPackageExpired
+    {
+        get
+        {
+            if (customer == null || customer.CurrentPackageId == null) return false;
+            var lastRenewal = customer.MonthlyHistory.OrderByDescending(h => h.RenewalDate).FirstOrDefault();
+            if (lastRenewal == null) return true;
+            
+            return lastRenewal.RenewalDate.AddMonths(1).Date < DateTime.Now.Date;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

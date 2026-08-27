@@ -1,4 +1,5 @@
 @page "/"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = IPSDesk.Models.AppPermissions.Dashboard.View)]
 
 @using IPSDesk.Data
 @using Microsoft.EntityFrameworkCore
@@ -7,7 +8,7 @@
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Dashboard - Diamond ISP</PageTitle>
+<PageTitle>Dashboard - Diamond Net</PageTitle>
 
 <!-- Top Header Section -->
 <div style="margin-bottom: 24px;">
@@ -326,14 +327,15 @@
         
         // Revenue metrics
         var allCurrentMonthPayments = await DbContext.Payments
-            .Where(p => p.BillingMonth == currentMonth)
+            .Where(p => p.PaymentDate.Month == now.Month && p.PaymentDate.Year == now.Year)
             .ToListAsync();
             
         monthlyRevenue = allCurrentMonthPayments.Sum(p => p.AmountCollected);
         renewalsThisMonth = allCurrentMonthPayments.Count;
         
+        var prevMonthDate = now.AddMonths(-1);
         lastMonthRevenue = await DbContext.Payments
-            .Where(p => p.BillingMonth == lastMonth)
+            .Where(p => p.PaymentDate.Month == prevMonthDate.Month && p.PaymentDate.Year == prevMonthDate.Year)
             .SumAsync(p => p.AmountCollected);
             
         await LoadRevenueData();

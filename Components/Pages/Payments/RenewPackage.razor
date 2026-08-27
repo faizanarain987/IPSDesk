@@ -7,7 +7,7 @@
 @inject NavigationManager NavManager
 @inject IPSDesk.Services.ToastService ToastService
 
-<PageTitle>Renew Package - Diamond ISP</PageTitle>
+<PageTitle>Renew Package - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
@@ -149,22 +149,9 @@
                         }
                     </div>
                     
-                    <div style="margin-bottom: 32px;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Billing Period</label>
-                        <div style="display: flex; gap: 12px;">
-                            <InputSelect @bind-Value="selectedMonth" class="form-control" style="flex: 2; padding: 12px; font-size: 1rem; border-radius: 8px;">
-                                @foreach (var month in months)
-                                {
-                                    <option value="@month">@month</option>
-                                }
-                            </InputSelect>
-                            <InputSelect @bind-Value="selectedYear" class="form-control" style="flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px;">
-                                @for (int i = DateTime.Now.Year - 2; i <= DateTime.Now.Year + 2; i++)
-                                {
-                                    <option value="@i">@i</option>
-                                }
-                            </InputSelect>
-                        </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Discount (Rs.)</label>
+                        <InputNumber @bind-Value="discount" class="form-control" style="padding: 12px; font-size: 1rem; border-radius: 8px;" />
                     </div>
                     
                     <button type="submit" class="btn-primary" style="width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);">
@@ -207,14 +194,7 @@
     
     private Guid? selectedPackageId;
     
-    private string selectedMonth = DateTime.Now.ToString("MMMM");
-    private int selectedYear = DateTime.Now.Year;
-    
-    private readonly string[] months = new[] 
-    { 
-        "January", "February", "March", "April", "May", "June", 
-        "July", "August", "September", "October", "November", "December" 
-    };
+    private decimal discount = 0;
     
     private IEnumerable<Customer>? filteredCustomers => 
         string.IsNullOrWhiteSpace(customerSearchText) 
@@ -264,18 +244,25 @@
         if (packageToCharge == null) return;
         
         decimal expectedFee = packageToCharge.MonthlyPrice;
-        string billingMonthString = $"{selectedMonth} {selectedYear}";
+
+        if (discount > expectedFee)
+        {
+            ToastService.ShowError("Discount cannot be greater than the package price.");
+            return;
+        }
+
+        decimal netFee = expectedFee - discount;
 
         // Increase Debt
-        customer.CurrentBalance += expectedFee;
+        customer.CurrentBalance += netFee;
         
         var feeLedger = new CustomerLedger
         {
             Id = Guid.NewGuid(),
             CustomerId = customer.Id,
             TransactionDate = DateTime.Now,
-            Description = $"Monthly Package Charge ({packageToCharge.Name}) - {billingMonthString}",
-            Debit = expectedFee,
+            Description = $"Monthly Package Charge ({packageToCharge.Name})",
+            Debit = netFee,
             Credit = 0,
             Balance = customer.CurrentBalance
         };
@@ -285,11 +272,10 @@
         {
             CustomerId = customer.Id,
             PackageId = packageToCharge.Id,
-            BillingMonth = billingMonthString,
+            Discount = discount,
             PackagePrice = expectedFee,
             AmountPaid = 0,
             RemainingBalance = customer.CurrentBalance,
-            PaymentStatus = "Unpaid",
             RenewalDate = DateTime.Now
         };
         DbContext.MonthlyPackageHistories.Add(history);

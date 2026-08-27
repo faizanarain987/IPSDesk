@@ -1,5 +1,5 @@
 <div class="nav-links">
-    <AuthorizeView Roles="Admin">
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Dashboard.View">
         <Authorized>
             <NavLink class="nav-item" href="" Match="NavLinkMatch.All" @onclick="HandleClick">
                 <span>Dashboard</span>
@@ -13,10 +13,14 @@
         <span>Packages</span>
     </NavLink>
     
-    <NavLink class="nav-item" href="customers/billinghub" @onclick="HandleClick">
-        <span>Billing Hub</span>
-    </NavLink>
-    <AuthorizeView Roles="Admin">
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Customers.BillingHub">
+        <Authorized>
+            <NavLink class="nav-item" href="customers/billinghub" @onclick="HandleClick">
+                <span>Billing Hub</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Renewals.ViewHistory">
         <Authorized>
             <NavLink class="nav-item" href="renewals/history" @onclick="HandleClick">
                 <span>Renewal History</span>
@@ -24,18 +28,48 @@
         </Authorized>
     </AuthorizeView>
     
-    <NavLink class="nav-item" href="payments" Match="NavLinkMatch.All" @onclick="HandleClick">
-        <span>Payment History</span>
-    </NavLink>
-    <NavLink class="nav-item" href="payment-methods" @onclick="HandleClick">
-        <span>Payment Methods</span>
-    </NavLink>
-    <NavLink class="nav-item" href="employees" @onclick="HandleClick">
-        <span>Employees</span>
-    </NavLink>
-    <NavLink class="nav-item" href="reports" @onclick="HandleClick">
-        <span>Reports</span>
-    </NavLink>
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Payments.ViewHistory">
+        <Authorized>
+            <NavLink class="nav-item" href="payments" Match="NavLinkMatch.All" @onclick="HandleClick">
+                <span>Payment History</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.PaymentMethods.View">
+        <Authorized>
+            <NavLink class="nav-item" href="payment-methods" @onclick="HandleClick">
+                <span>Payment Methods</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Users.View">
+        <Authorized>
+            <NavLink class="nav-item" href="employees" @onclick="HandleClick">
+                <span>Employees</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Reports.View">
+        <Authorized>
+            <NavLink class="nav-item" href="reports" @onclick="HandleClick">
+                <span>Reports</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Settings.View">
+        <Authorized>
+            <NavLink class="nav-item" href="settings" @onclick="HandleClick">
+                <span>Settings</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Roles.Manage">
+        <Authorized>
+            <NavLink class="nav-item" href="roles" @onclick="HandleClick">
+                <span>Roles & Permissions</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
 </div>
 
 @code {

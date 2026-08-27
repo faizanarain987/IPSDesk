@@ -1,12 +1,16 @@
 @page "/payments"
+@attribute [Authorize(Policy = IPSDesk.Models.AppPermissions.Payments.ViewHistory)]
 
 @using IPSDesk.Data
 @using IPSDesk.Models
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
 @inject NavigationManager NavManager
+@inject IPSDesk.Services.ICurrentUserService CurrentUserService
+@inject IPSDesk.Services.ToastService ToastService
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Manage Payments - Diamond ISP</PageTitle>
+<PageTitle>Manage Payments - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -27,14 +31,32 @@
 </div>
 
 <div class="glass-panel" style="padding: 0; overflow: hidden; animation: slideUpFade 0.4s ease-out forwards;">
-    @if (payments == null)
+    
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-glass); display: flex; gap: 16px; align-items: center; background: #f8fafc;">
+        <div style="flex-grow: 1; position: relative;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search by customer name or ID..." class="form-control" style="padding-left: 36px; margin: 0; background: white;" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; white-space: nowrap;">Processed By:</span>
+            <select @bind="selectedEmployee" class="form-control custom-select" style="margin: 0; min-width: 150px; background-color: white;">
+                <option value="All">All</option>
+                @foreach (var emp in employees)
+                {
+                    <option value="@emp">@emp</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (filteredPayments == null)
     {
         <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
             <div class="spinner" style="margin: 0 auto 16px auto;"></div>
             <p>Loading payments...</p>
         </div>
     }
-    else if (!payments.Any())
+    else if (!filteredPayments.Any())
     {
         <div style="padding: 60px 20px; text-align: center; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 12px;">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="8"></line><line x1="10" y1="8" x2="18" y2="8"></line><line x1="6" y1="12" x2="6" y2="12"></line><line x1="10" y1="12" x2="18" y2="12"></line><line x1="6" y1="16" x2="6" y2="16"></line><line x1="10" y1="16" x2="18" y2="16"></line></svg>
@@ -52,14 +74,13 @@
                         <th style="padding: 16px 20px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Date</th>
                         <th style="padding: 16px 20px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Customer</th>
                         <th style="padding: 16px 20px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Method</th>
-                        <th style="padding: 16px 20px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Billing Month</th>
                         <th style="padding: 16px 20px; text-align: right; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Amount</th>
                         <th style="padding: 16px 20px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Processed By</th>
                         <th style="padding: 16px 20px; text-align: center; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var payment in payments)
+                    @foreach (var payment in filteredPayments)
                     {
                         <tr style="border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='transparent'">
                             <td style="padding: 16px 20px; font-family: monospace; font-weight: 600; color: var(--text-secondary);">@payment.ReceiptNumber</td>
@@ -76,7 +97,6 @@
                                     @(payment.PaymentMethod?.Name ?? "Unknown")
                                 </span>
                             </td>
-                            <td style="padding: 16px 20px; font-weight: 500; color: var(--text-primary);">@payment.BillingMonth</td>
                             <td style="padding: 16px 20px; text-align: right; font-weight: 700; color: var(--accent-success); font-size: 1.1rem;">Rs. @payment.AmountCollected.ToString("N0")</td>
                             <td style="padding: 16px 20px;">
                                 <span style="font-size: 0.85rem; color: var(--text-secondary); background: #f1f5f9; padding: 4px 10px; border-radius: 20px; font-weight: 600;">
@@ -84,9 +104,18 @@
                                 </span>
                             </td>
                             <td style="padding: 16px 20px; text-align: center;">
-                                <button class="btn-icon" style="color: var(--accent-primary); background: rgba(59, 130, 246, 0.1); border-radius: 8px; padding: 8px; transition: background 0.2s;" @onclick='() => NavManager.NavigateTo($"/payments/receipt/{payment.Id}")' title="View Receipt" onmouseover="this.style.background='rgba(59, 130, 246, 0.2)'" onmouseout="this.style.background='rgba(59, 130, 246, 0.1)'">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                </button>
+                                <div style="display: flex; gap: 8px; justify-content: center;">
+                                    <button class="btn-icon btn-view" style="color: var(--text-primary);" @onclick='() => NavManager.NavigateTo($"/payments/receipt/{payment.Id}")' title="View Receipt">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    </button>
+                                    <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Payments.Delete">
+                                        <Authorized>
+                                            <button class="btn-icon btn-delete" style="color: var(--text-primary);" @onclick="() => ConfirmReversePayment(payment)" title="Delete Payment">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -95,6 +124,42 @@
         </div>
     }
 </div>
+
+@if (isDeleteModalVisible && paymentToDelete != null)
+{
+    <div class="modal-overlay">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Delete Payment</h2>
+                <button type="button" @onclick="HideDeleteModal" class="modal-close-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div style="padding: 32px 24px; text-align: left;">
+                <p style="color: #6B7280; margin: 0 0 16px 0; font-size: 1.05rem;">
+                    Are you sure you want to delete this payment for <strong style="color: #1F2937;">@(paymentToDelete.Customer?.Name ?? "Unknown")</strong>?
+                </p>
+                <div style="background: #FEF2F2; border: 1px solid #FCA5A5; padding: 16px; border-radius: 8px;">
+                    <h3 style="color: #B91C1C; margin: 0 0 8px 0; font-size: 0.95rem; font-weight: 600;">What will happen:</h3>
+                    <ul style="color: #991B1B; margin: 0; padding-left: 16px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 4px;">
+                        <li>The customer's balance will be automatically adjusted to reverse this transaction.</li>
+                        <li>A new compensatory entry will be added to the customer's ledger for auditing purposes.</li>
+                        <li>This payment record will be soft-deleted and removed from this list.</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+                <button type="button" class="modal-cancel-btn" @onclick="HideDeleteModal">Cancel</button>
+                <button type="button" class="modal-delete-btn" @onclick="ReversePayment">Delete Payment</button>
+            </div>
+        </div>
+    </div>
+}
 
 <style>
     @@keyframes slideUpFade {
@@ -123,7 +188,35 @@
 </style>
 
 @code {
-    private List<Payment>? payments;
+    private List<Payment>? allPayments;
+    private List<Payment>? filteredPayments;
+    
+    private List<string> employees = new();
+    
+    private string _searchTerm = "";
+    private string searchTerm 
+    {
+        get => _searchTerm;
+        set 
+        {
+            _searchTerm = value;
+            ApplyFilters();
+        }
+    }
+    
+    private string _selectedEmployee = "All";
+    private string selectedEmployee 
+    {
+        get => _selectedEmployee;
+        set 
+        {
+            _selectedEmployee = value;
+            ApplyFilters();
+        }
+    }
+    
+    private bool isDeleteModalVisible = false;
+    private Payment? paymentToDelete;
 
     protected override async Task OnInitializedAsync()
     {
@@ -132,11 +225,110 @@
 
     private async Task LoadPayments()
     {
-        payments = await DbContext.Payments
+        allPayments = await DbContext.Payments
             .Include(p => p.Customer)
             .Include(p => p.PaymentMethod)
+            .Where(p => !p.IsDeleted)
             .OrderByDescending(p => p.PaymentDate)
-            .Take(100)
+            .Take(500)
             .ToListAsync();
+            
+        // Populate distinct employees who processed payments
+        employees = allPayments
+            .Where(p => !string.IsNullOrEmpty(p.CreatedByName))
+            .Select(p => p.CreatedByName!)
+            .Distinct()
+            .OrderBy(e => e)
+            .ToList();
+            
+        ApplyFilters();
+    }
+    
+    private void ApplyFilters()
+    {
+        if (allPayments == null) return;
+        
+        var query = allPayments.AsQueryable();
+        
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var lowerSearch = searchTerm.ToLower();
+            query = query.Where(p => 
+                (p.Customer != null && p.Customer.Name.ToLower().Contains(lowerSearch)) ||
+                (p.Customer != null && p.Customer.ConnectionId.ToLower().Contains(lowerSearch)) ||
+                (p.ReceiptNumber.ToLower().Contains(lowerSearch))
+            );
+        }
+        
+        if (selectedEmployee != "All")
+        {
+            query = query.Where(p => p.CreatedByName == selectedEmployee);
+        }
+        
+        filteredPayments = query.ToList();
+    }
+
+    private void ConfirmReversePayment(Payment payment)
+    {
+        paymentToDelete = payment;
+        isDeleteModalVisible = true;
+    }
+
+    private void HideDeleteModal()
+    {
+        isDeleteModalVisible = false;
+        paymentToDelete = null;
+    }
+
+    private async Task ReversePayment()
+    {
+        if (paymentToDelete == null) return;
+        
+        var payment = paymentToDelete;
+        HideDeleteModal();
+
+        try
+        {
+            var dbPayment = await DbContext.Payments.Include(p => p.Customer).FirstOrDefaultAsync(p => p.Id == payment.Id);
+            if (dbPayment == null || dbPayment.IsDeleted) return;
+
+            dbPayment.IsDeleted = true;
+            dbPayment.UpdatedById = CurrentUserService.UserId;
+            dbPayment.UpdatedByName = CurrentUserService.UserName;
+            dbPayment.UpdatedAt = DateTime.Now;
+
+            if (dbPayment.Customer != null)
+            {
+                // Reverse the balance impact: Add AmountCollected, Subtract TotalCharge
+                // e.g. Customer owed 1500, paid 1000. Balance became 500.
+                // Reversing: Balance + 1000 = 1500. (Since TotalCharge is new items added in payment, reversing means subtracting those).
+                decimal balanceAdjustment = dbPayment.AmountCollected - dbPayment.TotalCharge;
+                dbPayment.Customer.CurrentBalance += balanceAdjustment;
+
+                // Add compensating ledger entry
+                var ledger = new CustomerLedger
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = dbPayment.Customer.Id,
+                    TransactionDate = DateTime.Now,
+                    Description = $"Payment Reversed (Receipt: {dbPayment.ReceiptNumber})",
+                    Debit = balanceAdjustment > 0 ? balanceAdjustment : 0,
+                    Credit = balanceAdjustment < 0 ? Math.Abs(balanceAdjustment) : 0,
+                    Balance = dbPayment.Customer.CurrentBalance
+                };
+                DbContext.CustomerLedgers.Add(ledger);
+                DbContext.Customers.Update(dbPayment.Customer);
+            }
+
+            DbContext.Payments.Update(dbPayment);
+            await DbContext.SaveChangesAsync();
+
+            ToastService.ShowSuccess($"Payment {payment.ReceiptNumber} reversed successfully.");
+            await LoadPayments();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error reversing payment: {ex.Message}");
+        }
     }
 }

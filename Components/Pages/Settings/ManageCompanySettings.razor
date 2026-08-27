@@ -1,0 +1,200 @@
+@page "/settings"
+
+@using System.ComponentModel.DataAnnotations
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize(Policy = AppPermissions.Settings.View)]
+@inject ApplicationDbContext DbContext
+@inject IPSDesk.Services.ToastService ToastService
+@inject NavigationManager NavManager
+
+<PageTitle>Company Settings - Diamond Net</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%); opacity: 0.05; border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;"></div>
+
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
+        <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/")' title="Back to Dashboard">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <h1 style="margin: 0;">Company Settings</h1>
+    </div>
+
+    @if (settings == null)
+    {
+        <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+            <div class="spinner" style="margin: 0 auto 16px auto; width: 40px; height: 40px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--accent-primary); animation: spin 1s linear infinite;"></div>
+            <p>Loading settings...</p>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="@settings" OnValidSubmit="SaveSettings" style="display: flex; flex-direction: column;">
+            <DataAnnotationsValidator />
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                <div>
+                    <label>Company Name <span style="color: red;">*</span></label>
+                    <InputText @bind-Value="settings.CompanyName" class="form-control" />
+                    <ValidationMessage For="@(() => settings.CompanyName)" />
+                </div>
+
+                <div>
+                    <label>Email Address</label>
+                    <InputText @bind-Value="settings.Email" class="form-control" type="email" placeholder="e.g. contact@diamondnet.com" />
+                    <ValidationMessage For="@(() => settings.Email)" />
+                </div>
+
+                <div>
+                    <label>Phone Number</label>
+                    <input type="text" @bind="settings.Phone" @bind:event="oninput" maxlength="12" class="form-control" placeholder="xxxx-xxxxxxx (e.g. 0325-8963214)" />
+                    <ValidationMessage For="@(() => settings.Phone)" />
+                </div>
+                
+                <div>
+                    <label>WhatsApp Number</label>
+                    <input type="text" @bind="settings.WhatsApp" @bind:event="oninput" maxlength="12" class="form-control" placeholder="xxxx-xxxxxxx (e.g. 0325-8963214)" />
+                    <ValidationMessage For="@(() => settings.WhatsApp)" />
+                </div>
+                
+                <div style="grid-column: span 2;">
+                    <label>Office Address</label>
+                    <InputTextArea @bind-Value="settings.Address" class="form-control" rows="3" placeholder="e.g. House No A351 Near Anees Grammar Secondary School Khuladabad Quiadabad Karachi" />
+                    <ValidationMessage For="@(() => settings.Address)" />
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 16px; border-top: 1px solid var(--border-glass); padding-top: 24px;">
+                <button type="button" class="btn-secondary" @onclick='() => NavManager.NavigateTo("/")'>Cancel</button>
+                <button type="submit" class="btn-primary" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner" style="display: inline-block; width: 14px; height: 14px; border: 2px solid white; border-bottom-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;"></span>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>Save Settings</span>
+                    }
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+<style>
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    private SettingsViewModel settings = new();
+    private CompanySettings? dbSettings;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        dbSettings = await DbContext.CompanySettings.FirstOrDefaultAsync();
+        
+        if (dbSettings == null)
+        {
+            dbSettings = new CompanySettings
+            {
+                Id = Guid.NewGuid(),
+                CompanyName = "Diamond Net"
+            };
+            DbContext.CompanySettings.Add(dbSettings);
+            await DbContext.SaveChangesAsync();
+        }
+        
+        settings = new SettingsViewModel
+        {
+            CompanyName = dbSettings.CompanyName,
+            Email = dbSettings.Email,
+            Phone = dbSettings.Phone,
+            WhatsApp = dbSettings.WhatsApp,
+            Address = dbSettings.Address
+        };
+    }
+
+    private async Task SaveSettings()
+    {
+        if (dbSettings == null) return;
+        
+        try
+        {
+            isSaving = true;
+            
+            dbSettings.CompanyName = settings.CompanyName;
+            dbSettings.Email = settings.Email;
+            dbSettings.Phone = settings.Phone;
+            dbSettings.WhatsApp = settings.WhatsApp;
+            dbSettings.Address = settings.Address;
+            
+            DbContext.CompanySettings.Update(dbSettings);
+            await DbContext.SaveChangesAsync();
+            ToastService.ShowSuccess("Company settings saved successfully!");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error saving settings: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public class SettingsViewModel
+    {
+        [Required(ErrorMessage = "Company Name is required")]
+        public string CompanyName { get; set; } = "Diamond Net";
+        
+        public string? Email { get; set; }
+        
+        private string? _phone;
+        [RegularExpression(@"^$|^0\d{3}-\d{7}$", ErrorMessage = "Phone must be empty or in format xxxx-xxxxxxx")]
+        public string? Phone 
+        { 
+            get => _phone;
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    _phone = null;
+                    return;
+                }
+                var val = new string(value.Where(char.IsDigit).ToArray());
+                if (val.Length > 0 && val[0] != '0') val = "0" + val;
+                if (val.Length > 4) val = val.Insert(4, "-");
+                if (val.Length > 12) val = val.Substring(0, 12);
+                _phone = val;
+            }
+        }
+        
+        private string? _whatsApp;
+        [RegularExpression(@"^$|^0\d{3}-\d{7}$", ErrorMessage = "WhatsApp must be empty or in format xxxx-xxxxxxx")]
+        public string? WhatsApp 
+        { 
+            get => _whatsApp;
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    _whatsApp = null;
+                    return;
+                }
+                var val = new string(value.Where(char.IsDigit).ToArray());
+                if (val.Length > 0 && val[0] != '0') val = "0" + val;
+                if (val.Length > 4) val = val.Insert(4, "-");
+                if (val.Length > 12) val = val.Substring(0, 12);
+                _whatsApp = val;
+            }
+        }
+        
+        public string? Address { get; set; }
+    }
+}

@@ -11,7 +11,7 @@
 @using IPSDesk.Services
 @inject ToastService ToastService
 
-<PageTitle>@(isEditMode ? "Edit Customer" : "Add Customer") - Diamond ISP</PageTitle>
+<PageTitle>@(isEditMode ? "Edit Customer" : "Add Customer") - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden;">
     <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%); opacity: 0.05; border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;"></div>
@@ -152,6 +152,11 @@
                         @(customerModel.IsActive ? "Active" : "Inactive")
                     </span>
                 </div>
+                <div>
+                    <label>Sector / Area / Zone</label>
+                    <InputText @bind-Value="customerModel.Area" class="form-control" placeholder="e.g. Sector A" />
+                    <ValidationMessage For="@(() => customerModel.Area)" />
+                </div>
                 <div style="grid-column: span 2;">
                     <label>Address <span style="color: red;">*</span></label>
                     <InputTextArea @bind-Value="customerModel.Address" class="form-control" rows="2" />
@@ -213,7 +218,8 @@
                     IsActive = customer.IsActive,
                     ConnectionDate = customer.ConnectionDate,
                     CurrentPackageId = customer.CurrentPackageId,
-                    CurrentBalance = customer.CurrentBalance
+                    CurrentBalance = customer.CurrentBalance,
+                    Area = customer.Area
                 };
             }
             else
@@ -224,21 +230,26 @@
         else
         {
             isEditMode = false;
-            string newConnId = "1";
+            string newConnId = "Diamond - 1";
             var allCustomers = await DbContext.Customers.ToListAsync();
             if (allCustomers.Any())
             {
                 var maxId = allCustomers
-                    .Select(c => int.TryParse(c.ConnectionId, out int val) ? val : 0)
+                    .Select(c => 
+                    {
+                        string numPart = c.ConnectionId.Replace("Diamond - ", "", StringComparison.OrdinalIgnoreCase).Trim();
+                        return int.TryParse(numPart, out int val) ? val : 0;
+                    })
+                    .DefaultIfEmpty(0)
                     .Max();
                     
                 if (maxId > 0)
                 {
-                    newConnId = (maxId + 1).ToString();
+                    newConnId = $"Diamond - {maxId + 1}";
                 }
                 else
                 {
-                    newConnId = (allCustomers.Count + 1).ToString();
+                    newConnId = $"Diamond - {allCustomers.Count + 1}";
                 }
             }
             customerModel = new CustomerViewModel { ConnectionId = newConnId };
@@ -260,6 +271,7 @@
                 WhatsApp = customerModel.WhatsApp,
                 Email = customerModel.Email,
                 Address = customerModel.Address,
+                Area = customerModel.Area,
                 Cnic = customerModel.Cnic,
                 IsActive = customerModel.IsActive,
                 ConnectionDate = customerModel.ConnectionDate,
@@ -311,6 +323,7 @@
                 existingCustomer.WhatsApp = customerModel.WhatsApp;
                 existingCustomer.Email = customerModel.Email;
                 existingCustomer.Address = customerModel.Address;
+                existingCustomer.Area = customerModel.Area;
                 existingCustomer.Cnic = customerModel.Cnic;
                 existingCustomer.IsActive = customerModel.IsActive;
                 existingCustomer.ConnectionDate = customerModel.ConnectionDate;
@@ -371,6 +384,8 @@
         
         [Required(ErrorMessage = "Address is required")]
         public string Address { get; set; } = string.Empty;
+        
+        public string Area { get; set; } = string.Empty;
         
         private string _cnic = "";
         [Required(ErrorMessage = "CNIC is required")]

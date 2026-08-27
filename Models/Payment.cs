@@ -22,7 +22,7 @@ public class Payment : AuditableEntity
     
     public decimal TotalCharge { get; set; } = 0;
     
-    public string BillingMonth { get; set; } = string.Empty;
+
     
     public DateTime PaymentDate { get; set; } = DateTime.Now;
     

@@ -64,7 +64,7 @@ namespace IPSDesk.Services
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(senderEmail ?? username, senderName ?? "Diamond ISP Support"),
+                From = new MailAddress(senderEmail ?? username, senderName ?? "Diamond Net Support"),
                 Subject = subject,
                 Body = htmlBody,
                 IsBodyHtml = true

@@ -1,0 +1,261 @@
+@page "/roles/add"
+@page "/roles/edit/{Id}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using IPSDesk.Models
+@using System.Reflection
+@attribute [Authorize(Policy = AppPermissions.Roles.Manage)]
+@inject RoleManager<IdentityRole> RoleManager
+@inject IPSDesk.Services.ToastService ToastService
+@inject NavigationManager NavManager
+
+<PageTitle>@(string.IsNullOrEmpty(Id) ? "Add Role" : "Edit Role") - Diamond Net</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
+        <button class="btn-icon" style="color: var(--text-secondary); background: white; border: 1px solid var(--border-glass); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" @onclick='() => NavManager.NavigateTo("/roles")' title="Back to Roles">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </div>
+        <div>
+            <h1 style="margin: 0; font-weight: 700; font-size: 1.5rem;">@(string.IsNullOrEmpty(Id) ? "Create New Role" : "Edit Role & Permissions")</h1>
+            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 0.95rem;">Configure role name and associated access rights.</p>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div style="padding: 40px; text-align: center; color: var(--text-secondary);">Loading...</div>
+    }
+    else
+    {
+        <form @onsubmit="SaveRole" @onsubmit:preventDefault>
+            <div style="background: white; border: 1px solid var(--border-glass); padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 32px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px;">Role Name <span style="color: #ef4444;">*</span></label>
+                <input type="text" @bind="currentRoleName" class="form-control" placeholder="e.g. Support, Cashier" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; max-width: 400px;" disabled="@(isEditMode && currentRoleName == "Admin")" />
+                @if (!string.IsNullOrEmpty(roleNameError))
+                {
+                    <span style="color: #ef4444; font-size: 0.85rem; margin-top: 8px; display: block;">@roleNameError</span>
+                }
+            </div>
+
+            <div style="background: white; border: 1px solid var(--border-glass); padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 32px;">
+                <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; margin-top: 0; margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    Access Rights (Permissions)
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px;">
+                    @foreach (var group in permissionGroups)
+                    {
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                                @group.ModuleName
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                @foreach (var perm in group.Permissions)
+                                {
+                                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #475569; cursor: pointer; user-select: none;">
+                                        <input type="checkbox" @bind="perm.IsSelected" style="width: 18px; height: 18px; accent-color: var(--accent-primary); cursor: pointer;" />
+                                        @perm.Name
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 16px; border-top: 1px solid var(--border-glass); padding-top: 24px;">
+                <button type="button" class="btn-secondary" style="padding: 16px; font-size: 1.1rem; font-weight: 600; border-radius: 12px; flex: 1;" @onclick='() => NavManager.NavigateTo("/roles")'>Cancel</button>
+                <button type="submit" class="btn-primary" style="padding: 16px; font-size: 1.1rem; font-weight: 700; border-radius: 12px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid white; border-bottom-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        <span>Save Role</span>
+                    }
+                </button>
+            </div>
+        </form>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool isEditMode => !string.IsNullOrEmpty(Id);
+    
+    private string currentRoleName = "";
+    private string roleNameError = "";
+    
+    private List<PermissionGroup> permissionGroups = new();
+    private IdentityRole? editingRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        InitializePermissionGroups();
+        
+        if (isEditMode)
+        {
+            editingRole = await RoleManager.FindByIdAsync(Id!);
+            if (editingRole != null)
+            {
+                if (editingRole.Name == "Admin")
+                {
+                    ToastService.ShowError("The Admin role cannot be edited directly.");
+                    NavManager.NavigateTo("/roles");
+                    return;
+                }
+
+                currentRoleName = editingRole.Name ?? "";
+                var claims = await RoleManager.GetClaimsAsync(editingRole);
+                var existingPerms = claims.Where(c => c.Type == "Permission").Select(c => c.Value).ToList();
+                
+                foreach (var group in permissionGroups)
+                {
+                    foreach (var perm in group.Permissions)
+                    {
+                        perm.IsSelected = existingPerms.Contains(perm.Value);
+                    }
+                }
+            }
+            else
+            {
+                ToastService.ShowError("Role not found.");
+                NavManager.NavigateTo("/roles");
+                return;
+            }
+        }
+        
+        isLoading = false;
+    }
+
+    private void InitializePermissionGroups()
+    {
+        permissionGroups.Clear();
+        var modules = typeof(AppPermissions).GetNestedTypes(BindingFlags.Public | BindingFlags.Static);
+        
+        foreach (var module in modules)
+        {
+            var group = new PermissionGroup { ModuleName = module.Name };
+            var fields = module.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            foreach (var field in fields)
+            {
+                if (field.IsLiteral && !field.IsInitOnly && field.FieldType == typeof(string))
+                {
+                    var value = (string)field.GetValue(null)!;
+                    group.Permissions.Add(new PermissionItem { Name = field.Name, Value = value, IsSelected = false });
+                }
+            }
+            permissionGroups.Add(group);
+        }
+    }
+
+    private async Task SaveRole()
+    {
+        if (string.IsNullOrWhiteSpace(currentRoleName))
+        {
+            roleNameError = "Role name is required.";
+            return;
+        }
+        
+        if (currentRoleName.Trim().Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            roleNameError = "Cannot create or edit a role named 'Admin'.";
+            return;
+        }
+
+        isSaving = true;
+        roleNameError = "";
+        
+        try
+        {
+            IdentityRole targetRole;
+            
+            if (isEditMode && editingRole != null)
+            {
+                targetRole = editingRole;
+                
+                if (targetRole.Name != currentRoleName)
+                {
+                    // Check if new name exists
+                    var existing = await RoleManager.FindByNameAsync(currentRoleName);
+                    if (existing != null && existing.Id != targetRole.Id)
+                    {
+                        roleNameError = "Role name already exists.";
+                        isSaving = false;
+                        return;
+                    }
+                }
+                
+                targetRole.Name = currentRoleName;
+                await RoleManager.UpdateAsync(targetRole);
+            }
+            else
+            {
+                if (await RoleManager.RoleExistsAsync(currentRoleName))
+                {
+                    roleNameError = "Role name already exists.";
+                    isSaving = false;
+                    return;
+                }
+                
+                targetRole = new IdentityRole(currentRoleName);
+                await RoleManager.CreateAsync(targetRole);
+            }
+
+            // Sync claims
+            var existingClaims = await RoleManager.GetClaimsAsync(targetRole);
+            var permissionClaims = existingClaims.Where(c => c.Type == "Permission").ToList();
+            
+            // Remove all existing permission claims
+            foreach (var claim in permissionClaims)
+            {
+                await RoleManager.RemoveClaimAsync(targetRole, claim);
+            }
+            
+            // Add selected permission claims
+            foreach (var group in permissionGroups)
+            {
+                foreach (var perm in group.Permissions.Where(p => p.IsSelected))
+                {
+                    await RoleManager.AddClaimAsync(targetRole, new System.Security.Claims.Claim("Permission", perm.Value));
+                }
+            }
+            
+            ToastService.ShowSuccess($"Role '{targetRole.Name}' saved successfully.");
+            NavManager.NavigateTo("/roles");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error saving role: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public class PermissionGroup
+    {
+        public string ModuleName { get; set; } = "";
+        public List<PermissionItem> Permissions { get; set; } = new();
+    }
+
+    public class PermissionItem
+    {
+        public string Name { get; set; } = "";
+        public string Value { get; set; } = "";
+        public bool IsSelected { get; set; }
+    }
+}

@@ -39,7 +39,13 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/login";
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var permission in IPSDesk.Models.AppPermissions.GetAllPermissions())
+    {
+        options.AddPolicy(permission, policy => policy.RequireClaim("Permission", permission));
+    }
+});
 builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();

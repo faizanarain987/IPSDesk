@@ -1,13 +1,16 @@
 @page "/renewals/history"
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Policy = IPSDesk.Models.AppPermissions.Renewals.ViewHistory)]
 
 @using IPSDesk.Data
 @using IPSDesk.Models
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
 @inject NavigationManager NavManager
+@inject IPSDesk.Services.ICurrentUserService CurrentUserService
+@inject IPSDesk.Services.ToastService ToastService
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Renewal History - Diamond ISP</PageTitle>
+<PageTitle>Renewal History - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -15,16 +18,33 @@
             <h1>Renewal History</h1>
             <p style="color: var(--text-secondary);">View and manage all customer package renewals.</p>
         </div>
-        <button class="btn-primary" @onclick='() => NavManager.NavigateTo("/payments/renew")'>+ Renew Package</button>
+        <button class="btn-primary" @onclick='() => NavManager.NavigateTo("/customers/billinghub")'>+ Renew Package</button>
     </div>
 </div>
 
-<div class="glass-panel">
-    @if (renewals == null)
+<div class="glass-panel" style="padding: 0; overflow: hidden; animation: slideUpFade 0.4s ease-out forwards;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-glass); display: flex; gap: 16px; align-items: center; background: #f8fafc;">
+        <div style="flex-grow: 1; position: relative;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search by customer name or ID..." class="form-control" style="padding-left: 36px; margin: 0; background: white;" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; white-space: nowrap;">Processed By:</span>
+            <select @bind="selectedEmployee" class="form-control custom-select" style="margin: 0; min-width: 150px; background-color: white;">
+                <option value="All">All</option>
+                @foreach (var emp in employees)
+                {
+                    <option value="@emp">@emp</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (filteredRenewals == null)
     {
         <p>Loading...</p>
     }
-    else if (!renewals.Any())
+    else if (!filteredRenewals.Any())
     {
         <p>No renewals recorded yet.</p>
     }
@@ -36,37 +56,38 @@
                     <th>Date of Renew</th>
                     <th>Connection ID</th>
                     <th>Customer Name</th>
-                    <th>Billing Month</th>
                     <th>Package</th>
+                    <th>Discount</th>
                     <th>Amount</th>
-                    <th>Status</th>
                     <th>Renewed By</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var history in renewals)
+                @foreach (var history in filteredRenewals)
                 {
                     <tr>
                         <td>@history.RenewalDate.ToString("MMM dd, yyyy")</td>
                         <td style="color: var(--text-secondary);">@(history.Customer?.ConnectionId ?? "N/A")</td>
                         <td style="font-weight: 500; color: #111827;">@(history.Customer?.Name ?? "Unknown")</td>
-                        <td>@history.BillingMonth</td>
                         <td>@(history.Package?.Name ?? "Unknown")</td>
+                        <td>Rs. @history.Discount.ToString("N0")</td>
                         <td style="font-weight: 600;">Rs. @history.PackagePrice.ToString("N0")</td>
-                        <td>
-                            <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background-color: @(history.PaymentStatus == "Paid" ? "#D1FAE5" : (history.PaymentStatus == "Partially Paid" ? "#FEF3C7" : "#FEE2E2")); color: @(history.PaymentStatus == "Paid" ? "#047857" : (history.PaymentStatus == "Partially Paid" ? "#B45309" : "#B91C1C")); border: 1px solid @(history.PaymentStatus == "Paid" ? "#34D399" : (history.PaymentStatus == "Partially Paid" ? "#FBBF24" : "#F87171"));">
-                                @history.PaymentStatus
-                            </span>
-                        </td>
                         <td>
                             <span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(0,0,0,0.04); padding: 2px 8px; border-radius: 12px;">@(history.CreatedByName ?? "System")</span>
                         </td>
                         <td>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <button class="btn-icon" style="color: var(--accent-primary);" @onclick='() => NavManager.NavigateTo($"/customers/profile/{history.CustomerId}")' title="View Customer Profile">
+                                <button class="btn-icon btn-view" style="color: var(--text-primary);" @onclick='() => NavManager.NavigateTo($"/customers/profile/{history.CustomerId}")' title="View Customer Profile">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 </button>
+                                <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Renewals.Delete">
+                                    <Authorized>
+                                        <button class="btn-icon btn-delete" style="color: var(--text-primary);" @onclick="() => ConfirmReverseRenewal(history)" title="Delete Renewal">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        </button>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         </td>
                     </tr>
@@ -76,16 +97,181 @@
     }
 </div>
 
+@if (isDeleteModalVisible && renewalToDelete != null)
+{
+    <div class="modal-overlay">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Delete Renewal</h2>
+                <button type="button" @onclick="HideDeleteModal" class="modal-close-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div style="padding: 32px 24px; text-align: left;">
+                <p style="color: #6B7280; margin: 0 0 16px 0; font-size: 1.05rem;">
+                    Are you sure you want to delete this renewal for <strong style="color: #1F2937;">@(renewalToDelete.Customer?.Name ?? "Unknown")</strong>?
+                </p>
+                <div style="background: #FEF2F2; border: 1px solid #FCA5A5; padding: 16px; border-radius: 8px;">
+                    <h3 style="color: #B91C1C; margin: 0 0 8px 0; font-size: 0.95rem; font-weight: 600;">What will happen:</h3>
+                    <ul style="color: #991B1B; margin: 0; padding-left: 16px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 4px;">
+                        <li>The customer's balance will be automatically adjusted to reverse this package charge.</li>
+                        <li>A new compensatory entry will be added to the customer's ledger for auditing purposes.</li>
+                        <li>This renewal record will be soft-deleted and removed from this list.</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+                <button type="button" class="modal-cancel-btn" @onclick="HideDeleteModal">Cancel</button>
+                <button type="button" class="modal-delete-btn" @onclick="ReverseRenewal">Delete Renewal</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    private List<MonthlyPackageHistory>? renewals;
+    private List<MonthlyPackageHistory>? allRenewals;
+    private List<MonthlyPackageHistory>? filteredRenewals;
+    
+    private List<string> employees = new();
+    
+    private string _searchTerm = "";
+    private string searchTerm 
+    {
+        get => _searchTerm;
+        set 
+        {
+            _searchTerm = value;
+            ApplyFilters();
+        }
+    }
+    
+    private string _selectedEmployee = "All";
+    private string selectedEmployee 
+    {
+        get => _selectedEmployee;
+        set 
+        {
+            _selectedEmployee = value;
+            ApplyFilters();
+        }
+    }
+    
+    private bool isDeleteModalVisible = false;
+    private MonthlyPackageHistory? renewalToDelete;
 
     protected override async Task OnInitializedAsync()
     {
-        renewals = await DbContext.MonthlyPackageHistories
+        await LoadRenewals();
+    }
+    
+    private async Task LoadRenewals()
+    {
+        allRenewals = await DbContext.MonthlyPackageHistories
             .Include(h => h.Customer)
             .Include(h => h.Package)
+            .Where(h => !h.IsDeleted)
             .OrderByDescending(h => h.RenewalDate)
-            .Take(100)
+            .Take(500)
             .ToListAsync();
+            
+        employees = allRenewals
+            .Where(p => !string.IsNullOrEmpty(p.CreatedByName))
+            .Select(p => p.CreatedByName!)
+            .Distinct()
+            .OrderBy(e => e)
+            .ToList();
+            
+        ApplyFilters();
+    }
+    
+    private void ApplyFilters()
+    {
+        if (allRenewals == null) return;
+        
+        var query = allRenewals.AsQueryable();
+        
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var lowerSearch = searchTerm.ToLower();
+            query = query.Where(h => 
+                (h.Customer != null && h.Customer.Name.ToLower().Contains(lowerSearch)) ||
+                (h.Customer != null && h.Customer.ConnectionId.ToLower().Contains(lowerSearch))
+            );
+        }
+        
+        if (selectedEmployee != "All")
+        {
+            query = query.Where(h => h.CreatedByName == selectedEmployee);
+        }
+        
+        filteredRenewals = query.ToList();
+    }
+
+    private void ConfirmReverseRenewal(MonthlyPackageHistory renewal)
+    {
+        renewalToDelete = renewal;
+        isDeleteModalVisible = true;
+    }
+
+    private void HideDeleteModal()
+    {
+        isDeleteModalVisible = false;
+        renewalToDelete = null;
+    }
+
+    private async Task ReverseRenewal()
+    {
+        if (renewalToDelete == null) return;
+        
+        var renewal = renewalToDelete;
+        HideDeleteModal();
+
+        try
+        {
+            var dbRenewal = await DbContext.MonthlyPackageHistories.Include(h => h.Customer).FirstOrDefaultAsync(h => h.Id == renewal.Id);
+            if (dbRenewal == null || dbRenewal.IsDeleted) return;
+
+            dbRenewal.IsDeleted = true;
+            dbRenewal.UpdatedById = CurrentUserService.UserId;
+            dbRenewal.UpdatedByName = CurrentUserService.UserName;
+            dbRenewal.UpdatedAt = DateTime.Now;
+
+            if (dbRenewal.Customer != null)
+            {
+                // Reverse the balance impact: Subtract (PackagePrice - Discount)
+                decimal netFee = dbRenewal.PackagePrice - dbRenewal.Discount;
+                decimal balanceAdjustment = -netFee; 
+                dbRenewal.Customer.CurrentBalance += balanceAdjustment;
+
+                // Add compensating ledger entry
+                var ledger = new CustomerLedger
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = dbRenewal.Customer.Id,
+                    TransactionDate = DateTime.Now,
+                    Description = $"Package Renewal Reversed",
+                    Debit = balanceAdjustment > 0 ? balanceAdjustment : 0,
+                    Credit = balanceAdjustment < 0 ? Math.Abs(balanceAdjustment) : 0,
+                    Balance = dbRenewal.Customer.CurrentBalance
+                };
+                DbContext.CustomerLedgers.Add(ledger);
+                DbContext.Customers.Update(dbRenewal.Customer);
+            }
+
+            DbContext.MonthlyPackageHistories.Update(dbRenewal);
+            await DbContext.SaveChangesAsync();
+
+            ToastService.ShowSuccess($"Renewal reversed successfully.");
+            await LoadRenewals();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error reversing renewal: {ex.Message}");
+        }
     }
 }

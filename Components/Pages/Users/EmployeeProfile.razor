@@ -8,7 +8,7 @@
 @inject ApplicationDbContext DbContext
 @inject NavigationManager NavManager
 
-<PageTitle>Employee Profile - Diamond ISP</PageTitle>
+<PageTitle>Employee Profile - Diamond Net</PageTitle>
 
 @if (employee == null)
 {
@@ -169,9 +169,8 @@ else
                         <th>Date</th>
                         <th>Customer</th>
                         <th>Package</th>
-                        <th>Month</th>
+                        <th>Discount</th>
                         <th>Amount Paid</th>
-                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -192,19 +191,12 @@ else
                                 }
                             </td>
                             <td>@(renewal.Package?.Name ?? "Unknown")</td>
-                            <td>@renewal.BillingMonth</td>
+                            <td>Rs. @renewal.Discount.ToString("N0")</td>
                             <td>
                                 <div style="display: flex; justify-content: flex-start; gap: 8px; color: var(--accent-success); font-weight: 500; min-width: 80px;">
                                     <span style="color: var(--text-secondary); font-size: 0.9em;">Rs.</span>
                                     <span>@renewal.AmountPaid.ToString("N0")</span>
                                 </div>
-                            </td>
-                            <td>
-                                <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; 
-                                     background: @(renewal.PaymentStatus == "Paid" ? "rgba(16, 185, 129, 0.1)" : renewal.PaymentStatus == "Unpaid" ? "rgba(239, 68, 68, 0.1)" : "rgba(245, 158, 11, 0.1)");
-                                     color: @(renewal.PaymentStatus == "Paid" ? "var(--accent-success)" : renewal.PaymentStatus == "Unpaid" ? "var(--accent-danger)" : "#F59E0B");">
-                                    @renewal.PaymentStatus
-                                </span>
                             </td>
                         </tr>
                     }

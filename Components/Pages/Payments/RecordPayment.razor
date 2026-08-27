@@ -6,7 +6,7 @@
 @inject ApplicationDbContext DbContext
 @inject NavigationManager NavManager
 
-<PageTitle>Record Payment - Diamond ISP</PageTitle>
+<PageTitle>Record Payment - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-success); background: linear-gradient(145deg, #ffffff, #f8fafc);">
     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
@@ -151,24 +151,7 @@
                         </InputSelect>
                     </div>
                     
-                    <div style="margin-bottom: 32px;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px;">Billing Period (Optional)</label>
-                        <div style="display: flex; gap: 12px;">
-                            <InputSelect @bind-Value="selectedMonth" class="form-control" style="flex: 2; padding: 12px; font-size: 1rem; border-radius: 8px;">
-                                <option value="">-- Clear Month --</option>
-                                @foreach (var month in months)
-                                {
-                                    <option value="@month">@month</option>
-                                }
-                            </InputSelect>
-                            <InputSelect @bind-Value="selectedYear" class="form-control" style="flex: 1; padding: 12px; font-size: 1rem; border-radius: 8px;">
-                                @for (int i = DateTime.Now.Year - 2; i <= DateTime.Now.Year + 2; i++)
-                                {
-                                    <option value="@i">@i</option>
-                                }
-                            </InputSelect>
-                        </div>
-                    </div>
+
                     
                     <button type="submit" class="btn-primary" style="width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39); background-color: var(--accent-success);">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
@@ -208,14 +191,7 @@
     private List<PaymentMethod>? paymentMethods;
     private List<Customer>? allCustomers;
     
-    private string selectedMonth = DateTime.Now.ToString("MMMM");
-    private int selectedYear = DateTime.Now.Year;
-    
-    private readonly string[] months = new[] 
-    { 
-        "January", "February", "March", "April", "May", "June", 
-        "July", "August", "September", "October", "November", "December" 
-    };
+
     
     private IEnumerable<Customer>? filteredCustomers => 
         string.IsNullOrWhiteSpace(customerSearchText) 
@@ -247,7 +223,7 @@
             }
         }
         
-        paymentModel.BillingMonth = DateTime.Now.ToString("MMMM yyyy");
+
     }
     
     private void ToggleDropdown()
@@ -268,8 +244,6 @@
     {
         if (customer == null || paymentModel.PaymentMethodId == Guid.Empty || paymentModel.AmountCollected < 0) return;
 
-        paymentModel.BillingMonth = $"{selectedMonth} {selectedYear}";
-
         // Determine Payment Type
         decimal expectedFee = customer.CurrentPackage?.MonthlyPrice ?? 0;
         if (paymentModel.AmountCollected >= expectedFee + customer.CurrentBalance)
@@ -284,32 +258,6 @@
         // Update Customer Balance
         // A payment (Credit) DECREASES the customer's debt (balance).
         decimal remaining = customer.CurrentBalance - paymentModel.AmountCollected;
-
-        // Update corresponding MonthlyPackageHistory if it exists
-        var history = await DbContext.MonthlyPackageHistories
-            .FirstOrDefaultAsync(h => h.CustomerId == customer.Id && h.BillingMonth == paymentModel.BillingMonth);
-            
-        if (history != null)
-        {
-            history.AmountPaid += paymentModel.AmountCollected;
-            history.RemainingBalance = history.PackagePrice - history.AmountPaid;
-            
-            if (history.RemainingBalance <= 0)
-            {
-                history.PaymentStatus = "Paid";
-                history.RemainingBalance = 0; // clamp to 0 for display
-            }
-            else if (history.AmountPaid > 0)
-            {
-                history.PaymentStatus = "Partially Paid";
-            }
-            else 
-            {
-                history.PaymentStatus = "Unpaid";
-            }
-            
-            DbContext.MonthlyPackageHistories.Update(history);
-        }
 
         var paymentLedger = new CustomerLedger
         {

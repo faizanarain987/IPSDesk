@@ -18,6 +18,7 @@ public class Customer : AuditableEntity
     public string Email { get; set; } = string.Empty;
     [Required]
     public string Address { get; set; } = string.Empty;
+    public string Area { get; set; } = string.Empty;
     
     [Required]
     public string Cnic { get; set; } = string.Empty;

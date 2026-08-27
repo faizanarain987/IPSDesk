@@ -1,5 +1,6 @@
 @page "/customers/billinghub/{Id:guid}"
 @page "/customers/billinghub"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = IPSDesk.Models.AppPermissions.Customers.BillingHub)]
 
 @using IPSDesk.Data
 @using IPSDesk.Models
@@ -8,7 +9,7 @@
 @inject NavigationManager NavManager
 @inject IPSDesk.Services.ToastService ToastService
 
-<PageTitle>Customer Billing Hub - Diamond ISP</PageTitle>
+<PageTitle>Customer Billing Hub - Diamond Net</PageTitle>
 
 @if (customer == null)
 {
@@ -68,6 +69,10 @@ else
                 <div style="font-weight: 600; color: var(--accent-primary); display: flex; align-items: center; gap: 6px; font-size: 1.05rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
                     @(customer.CurrentPackage?.Name ?? "None Assigned")
+                    @if (IsPackageExpired)
+                    {
+                        <span style="background: #fee2e2; color: #ef4444; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; border: 1px solid #fca5a5;">Expired</span>
+                    }
                 </div>
             </div>
             <div>
@@ -120,15 +125,24 @@ else
                         </InputSelect>
                     </div>
                     
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Discount (Rs.)</label>
+                        <InputNumber @bind-Value="discount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                    </div>
+                    
                     <div style="margin-bottom: 32px;">
                         <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Billing Date</label>
                         <InputDate @bind-Value="renewalDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
                     </div>
 
-                    <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px 0 rgba(99, 102, 241, 0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 14px 0 rgba(99, 102, 241, 0.4)';">
+                    <button type="submit" class="btn-primary" disabled="@(!CanRenewPackage)" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4); transition: transform 0.2s, box-shadow 0.2s; @(CanRenewPackage ? "" : "opacity: 0.6; cursor: not-allowed;")" onmouseover="@(CanRenewPackage ? "this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px 0 rgba(99, 102, 241, 0.5)';" : "")" onmouseout="@(CanRenewPackage ? "this.style.transform='none'; this.style.boxShadow='0 4px 14px 0 rgba(99, 102, 241, 0.4)';" : "")">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                         Renew Package
+                         @(CanRenewPackage ? "Renew Package" : "Already Renewed")
                     </button>
+                    @if (!CanRenewPackage)
+                    {
+                        <p style="color: #ef4444; font-size: 0.85rem; text-align: center; margin-top: 12px; margin-bottom: 0;">This package was renewed less than a month ago.</p>
+                    }
                 </EditForm>
             </div>
         </div>
@@ -243,6 +257,7 @@ else
     private List<Package>? packages;
     private Guid? selectedPackageId;
     private DateTime renewalDate = DateTime.Now;
+    private decimal discount = 0;
 
     // Payment Properties
     private List<PaymentMethod>? paymentMethods;
@@ -264,11 +279,9 @@ else
             paymentModel.PaymentMethodId = defaultMethod.Id;
         }
         
-        paymentModel.BillingMonth = DateTime.Now.ToString("MMMM yyyy");
-        
-        if (!paymentItems.Any())
+        if (customer != null && customer.CurrentBalance > 0)
         {
-            AddPaymentItem();
+            paymentModel.AmountCollected = customer.CurrentBalance;
         }
     }
     
@@ -310,6 +323,30 @@ else
         }
     }
 
+    private bool CanRenewPackage
+    {
+        get
+        {
+            if (customer == null) return false;
+            var lastRenewal = customer.MonthlyHistory.OrderByDescending(h => h.RenewalDate).FirstOrDefault();
+            if (lastRenewal == null) return true;
+            
+            return lastRenewal.RenewalDate.AddMonths(1).Date <= DateTime.Now.Date;
+        }
+    }
+
+    private bool IsPackageExpired
+    {
+        get
+        {
+            if (customer == null || customer.CurrentPackageId == null) return false;
+            var lastRenewal = customer.MonthlyHistory.OrderByDescending(h => h.RenewalDate).FirstOrDefault();
+            if (lastRenewal == null) return true;
+            
+            return lastRenewal.RenewalDate.AddMonths(1).Date < DateTime.Now.Date;
+        }
+    }
+
     private async Task ProcessRenewal()
     {
         if (customer == null || selectedPackageId == null || selectedPackageId == Guid.Empty) return;
@@ -318,18 +355,25 @@ else
         if (packageToCharge == null) return;
         
         decimal expectedFee = packageToCharge.MonthlyPrice;
-        string billingMonthString = renewalDate.ToString("MMMM yyyy");
+
+        if (discount > expectedFee)
+        {
+            ToastService.ShowError("Discount cannot be greater than the package price.");
+            return;
+        }
+
+        decimal netFee = expectedFee - discount;
 
         // Increase Debt
-        customer.CurrentBalance += expectedFee;
+        customer.CurrentBalance += netFee;
         
         var feeLedger = new CustomerLedger
         {
             Id = Guid.NewGuid(),
             CustomerId = customer.Id,
             TransactionDate = DateTime.Now,
-            Description = $"Monthly Package Charge ({packageToCharge.Name}) - {billingMonthString}",
-            Debit = expectedFee,
+            Description = $"Monthly Package Charge ({packageToCharge.Name})",
+            Debit = netFee,
             Credit = 0,
             Balance = customer.CurrentBalance
         };
@@ -339,11 +383,10 @@ else
         {
             CustomerId = customer.Id,
             PackageId = packageToCharge.Id,
-            BillingMonth = billingMonthString,
+            Discount = discount,
             PackagePrice = expectedFee,
             AmountPaid = 0,
             RemainingBalance = customer.CurrentBalance,
-            PaymentStatus = "Unpaid",
             RenewalDate = renewalDate
         };
         DbContext.MonthlyPackageHistories.Add(history);
@@ -357,10 +400,16 @@ else
         DbContext.Customers.Update(customer);
         await DbContext.SaveChangesAsync();
         
-        ToastService.ShowSuccess($"Package renewed successfully for {billingMonthString}.");
+        ToastService.ShowSuccess($"Package renewed successfully.");
         
         // Reload data to reflect changes in UI
         await LoadData();
+        
+        if (customer != null && customer.CurrentBalance > 0)
+        {
+            paymentModel.AmountCollected = customer.CurrentBalance;
+        }
+        
         StateHasChanged();
     }
 
@@ -368,8 +417,12 @@ else
     {
         if (customer == null || paymentModel.PaymentMethodId == Guid.Empty) return;
 
-        // Auto-detect billing month if it's not set
-        paymentModel.BillingMonth = renewalDate.ToString("MMMM yyyy");
+        if (paymentModel.Discount > Subtotal)
+        {
+            ToastService.ShowError("Discount cannot be greater than the subtotal.");
+            return;
+        }
+
         paymentModel.TotalCharge = TotalAmount;
 
         // Step 1: Charge the customer for the Items (TotalCharge)
@@ -377,12 +430,18 @@ else
         {
             customer.CurrentBalance += TotalAmount;
             
-            var chargeLedger = new CustomerLedger
-            {
-                Id = Guid.NewGuid(),
-                CustomerId = customer.Id,
-                TransactionDate = DateTime.Now,
-                Description = $"Custom Charge ({paymentItems.Count} items)",
+                var itemDescriptions = string.Join(", ", paymentItems.Where(i => !string.IsNullOrWhiteSpace(i.Description)).Select(i => i.Description));
+                if (string.IsNullOrWhiteSpace(itemDescriptions))
+                {
+                    itemDescriptions = $"Custom Charge ({paymentItems.Count} items)";
+                }
+
+                var chargeLedger = new CustomerLedger
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = customer.Id,
+                    TransactionDate = DateTime.Now,
+                    Description = itemDescriptions,
                 Debit = TotalAmount,
                 Credit = 0,
                 Balance = customer.CurrentBalance
