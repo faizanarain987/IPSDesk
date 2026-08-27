@@ -71,4 +71,7 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+// Seed database
+await IPSDesk.Data.DatabaseSeeder.SeedAsync(app.Services);
+
 app.Run();

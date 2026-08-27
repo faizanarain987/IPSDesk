@@ -4,6 +4,7 @@ using IPSDesk.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IPSDesk.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825073927_init")]
+    partial class init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,9 +50,6 @@ namespace IPSDesk.Migrations
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HomeAddress")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
@@ -176,59 +176,6 @@ namespace IPSDesk.Migrations
                     b.HasIndex("CurrentPackageId");
 
                     b.ToTable("Customers");
-                });
-
-            modelBuilder.Entity("IPSDesk.Models.CustomerLedger", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedById")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedByName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Credit")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Debit")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("TransactionDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedById")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedByName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("CustomerLedgers");
                 });
 
             modelBuilder.Entity("IPSDesk.Models.MonthlyPackageHistory", b =>
@@ -368,9 +315,6 @@ namespace IPSDesk.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("Discount")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -387,9 +331,6 @@ namespace IPSDesk.Migrations
                     b.Property<string>("ReceiptNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalCharge")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -409,50 +350,6 @@ namespace IPSDesk.Migrations
                     b.ToTable("Payments");
                 });
 
-            modelBuilder.Entity("IPSDesk.Models.PaymentItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedById")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedByName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("PaymentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedById")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedByName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PaymentId");
-
-                    b.ToTable("PaymentItems");
-                });
-
             modelBuilder.Entity("IPSDesk.Models.PaymentMethod", b =>
                 {
                     b.Property<Guid>("Id")
@@ -469,9 +366,6 @@ namespace IPSDesk.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
@@ -639,17 +533,6 @@ namespace IPSDesk.Migrations
                     b.Navigation("CurrentPackage");
                 });
 
-            modelBuilder.Entity("IPSDesk.Models.CustomerLedger", b =>
-                {
-                    b.HasOne("IPSDesk.Models.Customer", "Customer")
-                        .WithMany("Ledgers")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-                });
-
             modelBuilder.Entity("IPSDesk.Models.MonthlyPackageHistory", b =>
                 {
                     b.HasOne("IPSDesk.Models.Customer", "Customer")
@@ -686,17 +569,6 @@ namespace IPSDesk.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("PaymentMethod");
-                });
-
-            modelBuilder.Entity("IPSDesk.Models.PaymentItem", b =>
-                {
-                    b.HasOne("IPSDesk.Models.Payment", "Payment")
-                        .WithMany("Items")
-                        .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -752,16 +624,9 @@ namespace IPSDesk.Migrations
 
             modelBuilder.Entity("IPSDesk.Models.Customer", b =>
                 {
-                    b.Navigation("Ledgers");
-
                     b.Navigation("MonthlyHistory");
 
                     b.Navigation("Payments");
-                });
-
-            modelBuilder.Entity("IPSDesk.Models.Payment", b =>
-                {
-                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

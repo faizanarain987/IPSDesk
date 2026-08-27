@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PaymentMethod> PaymentMethods { get; set; }
     public DbSet<MonthlyPackageHistory> MonthlyPackageHistories { get; set; }
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<PaymentItem> PaymentItems { get; set; }
     public DbSet<CustomerLedger> CustomerLedgers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)

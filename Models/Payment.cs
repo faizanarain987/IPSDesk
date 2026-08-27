@@ -18,7 +18,13 @@ public class Payment : AuditableEntity
     
     public decimal AmountCollected { get; set; }
     
+    public decimal Discount { get; set; } = 0;
+    
+    public decimal TotalCharge { get; set; } = 0;
+    
     public string BillingMonth { get; set; } = string.Empty;
     
     public DateTime PaymentDate { get; set; } = DateTime.Now;
+    
+    public ICollection<PaymentItem> Items { get; set; } = new List<PaymentItem>();
 }

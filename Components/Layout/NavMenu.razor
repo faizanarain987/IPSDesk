@@ -6,15 +6,15 @@
             </NavLink>
         </Authorized>
     </AuthorizeView>
-    <NavLink class="nav-item" href="customers" @onclick="HandleClick">
+    <NavLink class="nav-item" href="customers" Match="NavLinkMatch.All" @onclick="HandleClick">
         <span>Customers</span>
     </NavLink>
     <NavLink class="nav-item" href="packages" @onclick="HandleClick">
         <span>Packages</span>
     </NavLink>
     
-    <NavLink class="nav-item" href="payments/renew" @onclick="HandleClick">
-        <span>Renew Package</span>
+    <NavLink class="nav-item" href="customers/billinghub" @onclick="HandleClick">
+        <span>Billing Hub</span>
     </NavLink>
     <AuthorizeView Roles="Admin">
         <Authorized>
@@ -24,9 +24,6 @@
         </Authorized>
     </AuthorizeView>
     
-    <NavLink class="nav-item" href="payments/new" @onclick="HandleClick">
-        <span>Record Payment</span>
-    </NavLink>
     <NavLink class="nav-item" href="payments" Match="NavLinkMatch.All" @onclick="HandleClick">
         <span>Payment History</span>
     </NavLink>
