@@ -37,7 +37,7 @@ else
         </div>
 
         <!-- The Receipt Content -->
-        <div id="receipt-content" style="background: white; padding: 40px; font-family: 'Inter', Arial, sans-serif; color: #333; line-height: 1.5; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);">
+        <div id="receipt-content" style="background: var(--bg-secondary); padding: 40px; font-family: 'Inter', Arial, sans-serif; color: var(--text-primary); line-height: 1.5; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);">
             
             @{
                 var currentPkg = packageHistory.FirstOrDefault();
@@ -292,3 +292,4 @@ else
         await JSRuntime.InvokeVoidAsync("downloadReceiptPdf", "receipt-content", filename);
     }
 }
+

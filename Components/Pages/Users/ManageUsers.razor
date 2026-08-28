@@ -15,7 +15,7 @@
 <PageTitle>Employees / Users - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -38,9 +38,10 @@
 
 
 
-<div class="glass-panel" style="padding: 0; overflow-x: auto;">
-    <table class="premium-table">
-        <thead>
+<div class="glass-panel" style="padding: 0; display: flex; flex-direction: column; overflow: hidden;">
+    <div class="table-scroll-wrapper">
+        <table class="premium-table">
+            <thead>
             <tr>
                 <th>Full Name</th>
                 <th>Email</th>
@@ -68,7 +69,7 @@
             }
             else
             {
-                @foreach (var user in users)
+                @foreach (var user in displayedUsers)
                 {
                     <tr>
                         <td style="font-weight: 500;">@user.FullName</td>
@@ -118,15 +119,59 @@
             }
         </tbody>
     </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="premium-pagination-footer">
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 0.85rem;">
+            <span>Show</span>
+            <select class="form-control" style="width: auto; padding: 4px 8px; margin-bottom: 0; font-size: 0.85rem;" @bind="pageSize" @bind:after="ResetPage">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+            </select>
+            <span>entries</span>
+            <span style="margin-left: 16px;">
+                Showing @(users != null && users.Any() ? ((currentPage - 1) * pageSize) + 1 : 0) to @(users != null ? Math.Min(currentPage * pageSize, users.Count()) : 0) of @(users?.Count() ?? 0) entries
+            </span>
+        </div>
+        
+        @if (totalPages > 1)
+        {
+            <div style="display: flex; gap: 4px;">
+                <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" disabled="@(currentPage == 1)" @onclick="() => GoToPage(currentPage - 1)">Prev</button>
+                
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    int pageNum = i;
+                    if (pageNum == currentPage)
+                    {
+                        <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                    }
+                    else if (pageNum == 1 || pageNum == totalPages || (pageNum >= currentPage - 2 && pageNum <= currentPage + 2))
+                    {
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                    }
+                    else if (pageNum == currentPage - 3 || pageNum == currentPage + 3)
+                    {
+                        <span style="padding: 6px 4px; font-size: 0.85rem; color: var(--text-secondary);">...</span>
+                    }
+                }
+                
+                <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" disabled="@(currentPage == totalPages)" @onclick="() => GoToPage(currentPage + 1)">Next</button>
+            </div>
+        }
+    </div>
 </div>
 
 @if (isDeleteModalVisible && userToDelete != null)
 {
     <div class="modal-overlay">
-        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
             <!-- Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
-                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Delete Employee</h2>
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: var(--text-primary);">Delete Employee</h2>
                 <button type="button" @onclick="HideDeleteModal" class="modal-close-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
@@ -134,13 +179,13 @@
             
             <!-- Body -->
             <div style="padding: 32px 24px; text-align: left;">
-                <p style="color: #6B7280; margin: 0; font-size: 1.05rem;">
+                <p style="color: var(--text-secondary); margin: 0; font-size: 1.05rem;">
                     Are you sure you want to delete this employee?
                 </p>
             </div>
             
             <!-- Footer -->
-            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: var(--bg-secondary);">
                 <button type="button" class="modal-cancel-btn" @onclick="HideDeleteModal">Cancel</button>
                 <button type="button" class="modal-delete-btn" @onclick="SoftDeleteUser">Delete</button>
             </div>
@@ -151,13 +196,13 @@
 @if (isResetModalVisible && userToReset != null)
 {
     <div class="modal-overlay">
-        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
             <EditForm Model="@resetPasswordModel" OnValidSubmit="ResetEmployeePassword">
                 <DataAnnotationsValidator />
                 
                 <!-- Header -->
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
-                    <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Reset Password</h2>
+                    <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: var(--text-primary);">Reset Password</h2>
                     <button type="button" @onclick="HideResetModal" class="modal-close-icon">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
@@ -165,8 +210,8 @@
                 
                 <!-- Body -->
                 <div style="padding: 24px; text-align: left;">
-                    <p style="color: #6B7280; margin: 0 0 16px 0; font-size: 0.95rem;">
-                        Set a new password for <strong style="color: #1F2937;">@userToReset.FullName</strong>.
+                    <p style="color: var(--text-secondary); margin: 0 0 16px 0; font-size: 0.95rem;">
+                        Set a new password for <strong style="color: var(--text-primary);">@userToReset.FullName</strong>.
                     </p>
 
                     @if (!string.IsNullOrEmpty(resetErrorMessage))
@@ -180,7 +225,7 @@
                         <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500;">New Password <span style="color: red;">*</span></label>
                         <div style="position: relative;">
                             <InputText @bind-Value="resetPasswordModel.NewPassword" type="@(showNewPassword ? "text" : "password")" class="form-control" placeholder="Enter new password" style="padding-right: 40px; background: #F9FAFB; border: 1px solid #D1D5DB;" />
-                            <button type="button" @onclick="() => showNewPassword = !showNewPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6B7280; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                            <button type="button" @onclick="() => showNewPassword = !showNewPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px; display: flex; align-items: center; justify-content: center;">
                                 @if (showNewPassword)
                                 {
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
@@ -198,7 +243,7 @@
                         <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500;">Confirm Password <span style="color: red;">*</span></label>
                         <div style="position: relative;">
                             <InputText @bind-Value="resetPasswordModel.ConfirmPassword" type="@(showConfirmPassword ? "text" : "password")" class="form-control" placeholder="Confirm new password" style="padding-right: 40px; background: #F9FAFB; border: 1px solid #D1D5DB;" />
-                            <button type="button" @onclick="() => showConfirmPassword = !showConfirmPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #6B7280; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                            <button type="button" @onclick="() => showConfirmPassword = !showConfirmPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px; display: flex; align-items: center; justify-content: center;">
                                 @if (showConfirmPassword)
                                 {
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
@@ -214,7 +259,7 @@
                 </div>
                 
                 <!-- Footer -->
-                <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: var(--bg-secondary);">
                     <button type="button" class="modal-cancel-btn" @onclick="HideResetModal">Cancel</button>
                     <button type="submit" class="modal-update-btn">Update Password</button>
                 </div>
@@ -233,6 +278,25 @@
     private bool showPassword = false;
     private bool showNewPassword = false;
     private bool showConfirmPassword = false;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => users == null || !users.Any() ? 1 : (int)Math.Ceiling((double)users.Count() / pageSize);
+    private IEnumerable<ApplicationUser> displayedUsers => users?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<ApplicationUser>();
+
+    private void ResetPage()
+    {
+        currentPage = 1;
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+        }
+    }
     private UserViewModel userModel = new();
     private ResetPasswordViewModel resetPasswordModel = new();
     private string errorMessage = "";
@@ -530,3 +594,8 @@
         public string Role { get; set; } = "Manager";
     }
 }
+
+
+
+
+

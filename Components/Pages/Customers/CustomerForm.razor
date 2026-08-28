@@ -90,7 +90,7 @@
                         
                         @if (isPackageDropdownOpen)
                         {
-                            <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: white; border: 1px solid var(--border-glass); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); z-index: 50; overflow: hidden;">
+                            <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); z-index: 50; overflow: hidden;">
                                 @if (packages != null)
                                 {
                                     @foreach (var pkg in packages)
@@ -413,3 +413,4 @@
         public decimal CurrentBalance { get; set; } = 0;
     }
 }
+

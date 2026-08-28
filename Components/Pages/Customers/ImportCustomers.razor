@@ -1,0 +1,398 @@
+@page "/customers/import"
+
+@using ClosedXML.Excel
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+@inject IPSDesk.Services.ToastService ToastService
+@inject IJSRuntime JS
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = IPSDesk.Models.AppPermissions.Customers.Create)]
+
+<PageTitle>Import Customers - Diamond Net</PageTitle>
+
+<script>
+    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+        const arrayBuffer = await contentStreamReference.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+            <div>
+                <h1 style="margin: 0; font-weight: 700; font-size: 1.5rem;">Import Customers</h1>
+                <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 0.95rem;">Upload an Excel (.xlsx) file to bulk import customers.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <button class="btn-primary" style="padding: 10px 20px; display: flex; align-items: center; gap: 8px; background-color: #10b981; border-color: #10b981;" @onclick="DownloadSample">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download Sample
+            </button>
+            <button class="btn-secondary" style="padding: 10px 20px;" @onclick='() => NavManager.NavigateTo("/customers")'>
+                Back to Customers
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="glass-panel" style="margin-bottom: 24px;">
+    <div style="border: 2px dashed var(--border-glass); border-radius: 12px; padding: 40px; text-align: center; background: #f8fafc;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary); margin-bottom: 16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        <h3 style="margin-bottom: 8px;">Select Excel File</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.9rem;">Must be .xlsx format. Required columns: ConnectionId, Name, Phone, Address, Cnic, PackageName</p>
+        <InputFile OnChange="LoadFiles" class="form-control" style="max-width: 400px; margin: 0 auto;" accept=".xlsx" />
+        
+        @if (isLoading)
+        {
+            <div style="margin-top: 16px; color: var(--accent-primary);">
+                Reading file...
+            </div>
+        }
+    </div>
+</div>
+
+@if (importedCustomers.Any())
+{
+    <div class="glass-panel" style="padding: 0; overflow-x: auto;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.1rem;">Preview Import Data</h3>
+            <div style="display: flex; gap: 16px; align-items: center;">
+                <span style="color: #047857; background: #d1fae5; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.85rem;">
+                    @importedCustomers.Count(c => c.IsValid) Ready
+                </span>
+                <span style="color: #b91c1c; background: #fee2e2; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.85rem;">
+                    @importedCustomers.Count(c => !c.IsValid) Errors
+                </span>
+                <button class="btn-primary" disabled="@(!importedCustomers.Any(c => c.IsValid) || isSubmitting)" @onclick="SubmitValidCustomers">
+                    @(isSubmitting ? "Importing..." : $"Import {importedCustomers.Count(c => c.IsValid)} Customers")
+                </button>
+            </div>
+        </div>
+
+        <table class="premium-table">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Conn ID</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                    <th>CNIC</th>
+                    <th>Package</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var customer in importedCustomers)
+                {
+                    <tr style="background-color: @(customer.IsValid ? "rgba(209, 250, 229, 0.2)" : "rgba(254, 226, 226, 0.3)");">
+                        <td>
+                            @if (customer.IsValid)
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            }
+                            else
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                            }
+                        </td>
+                        <td style="font-weight: 500;">@customer.ConnectionId</td>
+                        <td>@customer.Name</td>
+                        <td>@customer.Phone</td>
+                        <td>@customer.Address</td>
+                        <td>@customer.Cnic</td>
+                        <td>@customer.PackageName</td>
+                        <td style="color: #dc2626; font-size: 0.85rem; max-width: 250px;">
+                            @if (!customer.IsValid)
+                            {
+                                @string.Join(", ", customer.Errors)
+                            }
+                            else
+                            {
+                                <span style="color: #059669;">Ready to import</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private bool isLoading = false;
+    private bool isSubmitting = false;
+    private List<ImportedCustomer> importedCustomers = new();
+    private List<Package> existingPackages = new();
+    private HashSet<string> existingConnectionIds = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        existingPackages = await DbContext.Packages.Where(p => p.IsActive).ToListAsync();
+        var connIds = await DbContext.Customers.Select(c => c.ConnectionId).ToListAsync();
+        existingConnectionIds = new HashSet<string>(connIds, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        isLoading = true;
+        importedCustomers.Clear();
+        StateHasChanged();
+
+        try
+        {
+            var file = e.File;
+            if (file == null || !file.Name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                ToastService.ShowError("Please upload a valid .xlsx file.");
+                isLoading = false;
+                return;
+            }
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB limit
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+
+            using var workbook = new XLWorkbook(ms);
+            var worksheet = workbook.Worksheets.FirstOrDefault();
+            if (worksheet == null)
+            {
+                ToastService.ShowError("Excel file is empty.");
+                isLoading = false;
+                return;
+            }
+
+            // Find headers
+            var headerRow = worksheet.Row(1);
+            var headers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            
+            for (int col = 1; col <= worksheet.LastCellUsed()?.Address.ColumnNumber; col++)
+            {
+                var cellValue = headerRow.Cell(col).GetString().Trim();
+                if (!string.IsNullOrEmpty(cellValue))
+                {
+                    headers[cellValue] = col;
+                }
+            }
+
+            if (!headers.ContainsKey("ConnectionId") || !headers.ContainsKey("Name") || 
+                !headers.ContainsKey("Phone") || !headers.ContainsKey("PackageName"))
+            {
+                ToastService.ShowError("Missing required columns. Please ensure ConnectionId, Name, Phone, and PackageName exist.");
+                isLoading = false;
+                return;
+            }
+
+            var rows = worksheet.RowsUsed().Skip(1); // Skip header
+
+            foreach (var row in rows)
+            {
+                var importRow = new ImportedCustomer();
+                
+                importRow.ConnectionId = GetCellValue(row, headers, "ConnectionId");
+                importRow.Name = GetCellValue(row, headers, "Name");
+                importRow.Phone = GetCellValue(row, headers, "Phone");
+                importRow.Address = GetCellValue(row, headers, "Address");
+                importRow.Cnic = GetCellValue(row, headers, "Cnic");
+                importRow.PackageName = GetCellValue(row, headers, "PackageName");
+                
+                // Read optional fields if they exist
+                importRow.WhatsApp = GetCellValue(row, headers, "WhatsApp");
+                importRow.Email = GetCellValue(row, headers, "Email");
+                importRow.Area = GetCellValue(row, headers, "Area");
+
+                ValidateRow(importRow);
+                importedCustomers.Add(importRow);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error reading file: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetCellValue(IXLRow row, Dictionary<string, int> headers, string columnName)
+    {
+        if (headers.TryGetValue(columnName, out int colIndex))
+        {
+            return row.Cell(colIndex).GetString().Trim();
+        }
+        return string.Empty;
+    }
+
+    private void ValidateRow(ImportedCustomer customer)
+    {
+        if (string.IsNullOrWhiteSpace(customer.ConnectionId)) customer.Errors.Add("ConnectionId is required.");
+        else if (existingConnectionIds.Contains(customer.ConnectionId)) customer.Errors.Add("ConnectionId already exists.");
+        
+        // Also check if there are duplicates inside the excel file itself
+        else if (importedCustomers.Any(c => string.Equals(c.ConnectionId, customer.ConnectionId, StringComparison.OrdinalIgnoreCase))) 
+            customer.Errors.Add("Duplicate ConnectionId in file.");
+
+        if (string.IsNullOrWhiteSpace(customer.Name)) customer.Errors.Add("Name is required.");
+        if (string.IsNullOrWhiteSpace(customer.Phone)) customer.Errors.Add("Phone is required.");
+        if (string.IsNullOrWhiteSpace(customer.Address)) customer.Errors.Add("Address is required.");
+        if (string.IsNullOrWhiteSpace(customer.Cnic)) customer.Errors.Add("Cnic is required.");
+
+        if (string.IsNullOrWhiteSpace(customer.PackageName))
+        {
+            customer.Errors.Add("PackageName is required.");
+        }
+        else
+        {
+            var package = existingPackages.FirstOrDefault(p => p.Name.Equals(customer.PackageName, StringComparison.OrdinalIgnoreCase));
+            if (package == null)
+            {
+                customer.Errors.Add($"Package '{customer.PackageName}' not found.");
+            }
+            else
+            {
+                customer.MatchedPackageId = package.Id;
+            }
+        }
+
+        customer.IsValid = !customer.Errors.Any();
+    }
+
+    private async Task SubmitValidCustomers()
+    {
+        isSubmitting = true;
+        
+        var validCustomers = importedCustomers.Where(c => c.IsValid).ToList();
+        if (!validCustomers.Any())
+        {
+            isSubmitting = false;
+            return;
+        }
+
+        var newCustomers = new List<Customer>();
+        
+        foreach (var import in validCustomers)
+        {
+            var customer = new Customer
+            {
+                Id = Guid.NewGuid(),
+                ConnectionId = import.ConnectionId,
+                Name = import.Name,
+                Phone = import.Phone,
+                WhatsApp = string.IsNullOrWhiteSpace(import.WhatsApp) ? import.Phone : import.WhatsApp,
+                Email = import.Email,
+                Address = import.Address,
+                Area = import.Area,
+                Cnic = import.Cnic,
+                IsActive = true,
+                ConnectionDate = DateTime.Now,
+                CurrentBalance = 0,
+                CurrentPackageId = import.MatchedPackageId
+            };
+            
+            newCustomers.Add(customer);
+            
+            // Add to in-memory set to prevent duplicates if user uploads another file without refreshing
+            existingConnectionIds.Add(customer.ConnectionId);
+        }
+
+        try
+        {
+            DbContext.Customers.AddRange(newCustomers);
+            await DbContext.SaveChangesAsync();
+            ToastService.ShowSuccess($"Successfully imported {newCustomers.Count} customers!");
+            NavManager.NavigateTo("/customers");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Database error: {ex.Message}");
+            isSubmitting = false;
+        }
+    }
+
+    private async Task DownloadSample()
+    {
+        try
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Sample Customers");
+
+            // Add Headers
+            var headers = new[] { 
+                "ConnectionId", "Name", "Phone", "Address", "Cnic", "PackageName", 
+                "WhatsApp", "Email", "Area" 
+            };
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = worksheet.Cell(1, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+            }
+
+            // Add a sample row
+            worksheet.Cell(2, 1).Value = "CONN-12345";
+            worksheet.Cell(2, 2).Value = "John Doe";
+            worksheet.Cell(2, 3).Value = "03001234567";
+            worksheet.Cell(2, 4).Value = "123 Main St, Block A";
+            worksheet.Cell(2, 5).Value = "12345-1234567-1";
+            worksheet.Cell(2, 6).Value = existingPackages.FirstOrDefault()?.Name ?? "Sample Package";
+            worksheet.Cell(2, 7).Value = "03001234567"; // Optional
+            worksheet.Cell(2, 8).Value = "john.doe@example.com"; // Optional
+            worksheet.Cell(2, 9).Value = "Downtown"; // Optional
+
+            worksheet.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            var fileBytes = ms.ToArray();
+
+            using var streamRef = new DotNetStreamReference(new MemoryStream(fileBytes));
+            await JS.InvokeVoidAsync("downloadFileFromStream", "Customer_Import_Sample.xlsx", streamRef);
+            
+            ToastService.ShowSuccess("Sample file downloaded.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error generating sample file: {ex.Message}");
+        }
+    }
+
+    public class ImportedCustomer
+    {
+        public string ConnectionId { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string WhatsApp { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string Area { get; set; } = string.Empty;
+        public string Cnic { get; set; } = string.Empty;
+        public string PackageName { get; set; } = string.Empty;
+        
+        public Guid? MatchedPackageId { get; set; }
+        public bool IsValid { get; set; }
+        public List<string> Errors { get; set; } = new();
+    }
+}
+
+

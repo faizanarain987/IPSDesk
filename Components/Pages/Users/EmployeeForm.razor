@@ -15,7 +15,7 @@
 
 <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
-        <button class="btn-icon" style="color: var(--text-secondary); background: white; border: 1px solid var(--border-glass); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" @onclick='() => NavigationManager.NavigateTo("/employees")' title="Back to Employees">
+        <button class="btn-icon" style="color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" @onclick='() => NavigationManager.NavigateTo("/employees")' title="Back to Employees">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
         <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
@@ -72,9 +72,9 @@
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
-                <div style="background: white; border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                     <label style="display: block; font-weight: 600; margin-bottom: 12px;">Role <span style="color: #ef4444;">*</span></label>
-                    <InputSelect @bind-Value="userModel.Role" class="form-control" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; background-color: #F9FAFB;">
+                    <InputSelect @bind-Value="userModel.Role" class="form-control" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; background-color: var(--bg-secondary);">
                         @foreach (var roleName in availableRoles)
                         {
                             <option value="@roleName">@roleName</option>
@@ -83,7 +83,7 @@
                     <ValidationMessage For="@(() => userModel.Role)" />
                 </div>
 
-                <div style="background: white; border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                     <label style="display: block; font-weight: 600; margin-bottom: 12px;">Employee Status</label>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <label class="toggle-switch">
@@ -99,7 +99,7 @@
 
             @if (Id == null)
             {
-                <div style="background: white; border: 1px solid var(--border-glass); padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 32px;">
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-glass); padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 32px;">
                     <label style="display: block; font-weight: 600; margin-bottom: 8px;">Password <span style="color: #ef4444;">*</span></label>
                     <div style="position: relative;">
                         <InputText @bind-Value="userModel.Password" type="@(showPassword ? "text" : "password")" class="form-control" placeholder="Enter secure password" style="padding: 12px 48px 12px 12px; font-size: 1.05rem; border-radius: 8px;" autocomplete="new-password" />
@@ -301,3 +301,4 @@
         public string Role { get; set; } = "Manager";
     }
 }
+

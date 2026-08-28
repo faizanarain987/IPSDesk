@@ -10,7 +10,7 @@
 <PageTitle>Payment Methods - Diamond Net</PageTitle>
 
 <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
@@ -31,17 +31,18 @@
     </div>
 </div>
 
-<div class="glass-panel" style="padding: 0; overflow: hidden;">
+<div class="glass-panel" style="padding: 0; display: flex; flex-direction: column; overflow: hidden;">
     @if (methods == null)
     {
-        <p>Loading...</p>
+        <p style="padding: 24px; color: var(--text-secondary); text-align: center;">Loading...</p>
     }
     else if (!methods.Any())
     {
-        <p>No payment methods found.</p>
+        <p style="padding: 24px; color: var(--text-secondary); text-align: center;">No payment methods found.</p>
     }
     else
     {
+        <div class="table-scroll-wrapper">
         <table class="premium-table">
             <thead>
                 <tr>
@@ -52,10 +53,10 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var method in methods)
+                @foreach (var method in displayedMethods)
                 {
                     <tr>
-                        <td style="font-weight: 500; color: #111827;">@method.Name</td>
+                        <td style="font-weight: 500; color: var(--text-primary);">@method.Name</td>
                         <td>
                             <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background-color: @(method.IsDefault ? "#D1FAE5" : "#FEF3C7"); color: @(method.IsDefault ? "#047857" : "#B45309"); border: 1px solid @(method.IsDefault ? "#34D399" : "#FBBF24");">
                                 @(method.IsDefault ? "Yes" : "No")
@@ -88,27 +89,71 @@
                 }
             </tbody>
         </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="premium-pagination-footer">
+            <div style="display: flex; align-items: center; gap: 12px; font-size: 0.85rem;">
+                <span>Show</span>
+                <select class="form-control" style="width: auto; padding: 4px 8px; margin-bottom: 0; font-size: 0.85rem;" @bind="pageSize" @bind:after="ResetPage">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                </select>
+                <span>entries</span>
+                <span style="margin-left: 16px;">
+                    Showing @(methods != null && methods.Any() ? ((currentPage - 1) * pageSize) + 1 : 0) to @(methods != null ? Math.Min(currentPage * pageSize, methods.Count()) : 0) of @(methods?.Count() ?? 0) entries
+                </span>
+            </div>
+            
+            @if (totalPages > 1)
+            {
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" disabled="@(currentPage == 1)" @onclick="() => GoToPage(currentPage - 1)">Prev</button>
+                    
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        int pageNum = i;
+                        if (pageNum == currentPage)
+                        {
+                            <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                        }
+                        else if (pageNum == 1 || pageNum == totalPages || (pageNum >= currentPage - 2 && pageNum <= currentPage + 2))
+                        {
+                            <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                        }
+                        else if (pageNum == currentPage - 3 || pageNum == currentPage + 3)
+                        {
+                            <span style="padding: 6px 4px; font-size: 0.85rem; color: var(--text-secondary);">...</span>
+                        }
+                    }
+                    
+                    <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" disabled="@(currentPage == totalPages)" @onclick="() => GoToPage(currentPage + 1)">Next</button>
+                </div>
+            }
+        </div>
     }
 </div>
 
 @if (isDeleteModalVisible && methodToDelete != null)
 {
     <div class="modal-overlay">
-        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 0; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #E5E7EB;">
-                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: #1F2937;">Delete Payment Method</h2>
+                <h2 style="margin: 0; font-size: 1.15rem; font-weight: 400; color: var(--text-primary);">Delete Payment Method</h2>
                 <button type="button" @onclick="HideDeleteModal" class="modal-close-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
             
             <div style="padding: 32px 24px; text-align: left;">
-                <p style="color: #6B7280; margin: 0; font-size: 1.05rem;">
-                    Are you sure you want to delete <strong style="color: #1F2937;">@methodToDelete.Name</strong>?
+                <p style="color: var(--text-secondary); margin: 0; font-size: 1.05rem;">
+                    Are you sure you want to delete <strong style="color: var(--text-primary);">@methodToDelete.Name</strong>?
                 </p>
             </div>
             
-            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: #ffffff;">
+            <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid #E5E7EB; background: var(--bg-secondary);">
                 <button type="button" class="modal-cancel-btn" @onclick="HideDeleteModal">Cancel</button>
                 <button type="button" class="modal-delete-btn" @onclick="SoftDeleteMethod">Delete</button>
             </div>
@@ -120,6 +165,25 @@
     private List<PaymentMethod>? methods;
     private bool isDeleteModalVisible = false;
     private PaymentMethod? methodToDelete;
+    
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => methods == null || !methods.Any() ? 1 : (int)Math.Ceiling((double)methods.Count() / pageSize);
+    private IEnumerable<PaymentMethod> displayedMethods => methods?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<PaymentMethod>();
+
+    private void ResetPage()
+    {
+        currentPage = 1;
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -159,3 +223,8 @@
         await LoadMethods();
     }
 }
+
+
+
+
+

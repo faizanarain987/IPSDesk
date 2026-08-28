@@ -14,7 +14,7 @@
 
 <div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
-        <button class="btn-icon" style="color: var(--text-secondary); background: white; border: 1px solid var(--border-glass); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" @onclick='() => NavManager.NavigateTo("/payment-methods")' title="Back to Methods">
+        <button class="btn-icon" style="color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" @onclick='() => NavManager.NavigateTo("/payment-methods")' title="Back to Methods">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
         <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
@@ -42,7 +42,7 @@
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
-                <div style="background: white; border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                     <label style="display: block; font-weight: 600; margin-bottom: 12px;">Method Status</label>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <label class="toggle-switch">
@@ -55,7 +55,7 @@
                     </div>
                 </div>
                 
-                <div style="background: white; border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                     <label style="display: block; font-weight: 600; margin-bottom: 12px;">Default Method</label>
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                         <label class="toggle-switch">
@@ -153,3 +153,4 @@
         NavManager.NavigateTo("/payment-methods");
     }
 }
+

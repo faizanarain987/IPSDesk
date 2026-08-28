@@ -13,7 +13,7 @@
 
 @if (customer == null)
 {
-    <div style="display: flex; justify-content: center; align-items: center; min-height: 400px; flex-direction: column; gap: 16px;">
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 100px; flex-direction: column; gap: 16px;">
         @if (Id == Guid.Empty)
         {
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -43,9 +43,9 @@ else
                     @(string.IsNullOrEmpty(customer.Name) ? "?" : customer.Name.Substring(0, 1).ToUpper())
                 </div>
                 <div>
-                    <h1 style="margin: 0 0 8px 0; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; color: #111827;">@customer.Name</h1>
+                    <h1 style="margin: 0 0 8px 0; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary);">@customer.Name</h1>
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <span style="font-family: monospace; font-size: 0.9rem; background: #F3F4F6; padding: 4px 10px; border-radius: 8px; color: #4B5563; font-weight: 600;">ID: @customer.ConnectionId</span>
+                        <span style="font-family: monospace; font-size: 0.9rem; background: var(--border-glass); padding: 4px 10px; border-radius: 8px; color: #4B5563; font-weight: 600; white-space: nowrap;">ID: @customer.ConnectionId</span>
                         <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: @(customer.IsActive ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"); color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 600; font-size: 0.85rem;">
                             <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px;"></span>
                             @(customer.IsActive ? "Active" : "Inactive")
@@ -77,15 +77,15 @@ else
             </div>
             <div>
                 <span style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Phone Number</span>
-                <div style="font-weight: 500; color: #1F2937;">@(string.IsNullOrEmpty(customer.Phone) ? "N/A" : customer.Phone)</div>
+                <div style="font-weight: 500; color: var(--text-primary);">@(string.IsNullOrEmpty(customer.Phone) ? "N/A" : customer.Phone)</div>
             </div>
             <div>
                 <span style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Address</span>
-                <div style="font-weight: 500; color: #1F2937; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@customer.Address">@(string.IsNullOrEmpty(customer.Address) ? "N/A" : customer.Address)</div>
+                <div style="font-weight: 500; color: var(--text-primary); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@customer.Address">@(string.IsNullOrEmpty(customer.Address) ? "N/A" : customer.Address)</div>
             </div>
             <div>
                 <span style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Connection Date</span>
-                <div style="font-weight: 500; color: #1F2937;">@customer.ConnectionDate.ToString("MMM dd, yyyy")</div>
+                <div style="font-weight: 500; color: var(--text-primary);">@customer.ConnectionDate.ToString("MMM dd, yyyy")</div>
             </div>
             <div>
                 <button class="btn-icon" style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;" @onclick='() => NavManager.NavigateTo($"/customers/profile/{customer.Id}")'>
@@ -106,14 +106,14 @@ else
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l5.94 4.5"/></svg>
                 </div>
                 <div>
-                    <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #111827;">Renew Package</h2>
+                    <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">Renew Package</h2>
                     <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Charge customer for a new billing cycle.</p>
                 </div>
             </div>
             <div style="padding: 24px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                 <EditForm Model="this" FormName="renewPackageForm" OnValidSubmit="ProcessRenewal">
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Select Package</label>
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Select Package</label>
                         <InputSelect @bind-Value="selectedPackageId" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;">
                             @if (packages != null)
                             {
@@ -126,12 +126,12 @@ else
                     </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Discount (Rs.)</label>
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Discount (Rs.)</label>
                         <InputNumber @bind-Value="discount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
                     </div>
                     
                     <div style="margin-bottom: 32px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Billing Date</label>
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Billing Date</label>
                         <InputDate @bind-Value="renewalDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
                     </div>
 
@@ -154,7 +154,7 @@ else
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
                 <div>
-                    <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #111827;">Record Payment</h2>
+                    <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">Record Payment</h2>
                     <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Receive cash to clear outstanding balance.</p>
                 </div>
             </div>
@@ -162,9 +162,9 @@ else
                 <EditForm Model="paymentModel" FormName="recordPaymentForm" OnValidSubmit="ProcessPayment">
                     <DataAnnotationsValidator />
                     <!-- Custom Items -->
-                    <div style="margin-bottom: 24px; border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px; background: white;">
+                    <div style="margin-bottom: 24px; border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px; background: var(--bg-secondary);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <label style="font-weight: 600; font-size: 0.9rem; color: #374151; margin: 0;">Items to Charge</label>
+                            <label style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); margin: 0;">Items to Charge</label>
                             <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;" @onclick="AddPaymentItem">
                                 + Add Item
                             </button>
@@ -183,17 +183,17 @@ else
                         
                         <div style="display: flex; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 1px dashed #E5E7EB;">
                             <span style="font-weight: 500; color: var(--text-secondary); font-size: 0.9rem;">Subtotal:</span>
-                            <span style="font-weight: 700; color: #111827;">Rs. @Subtotal.ToString("N0")</span>
+                            <span style="font-weight: 700; color: var(--text-primary);">Rs. @Subtotal.ToString("N0")</span>
                         </div>
                     </div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
                         <div>
-                            <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Discount (Rs.)</label>
+                            <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Discount (Rs.)</label>
                             <InputNumber @bind-Value="paymentModel.Discount" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
                         </div>
                         <div>
-                            <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Total Charge (Rs.)</label>
+                            <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Total Charge (Rs.)</label>
                             <div style="padding: 12px; font-size: 1.1rem; font-weight: 700; color: var(--accent-primary); border-radius: 10px; background: rgba(99, 102, 241, 0.1);">
                                 @TotalAmount.ToString("N0")
                             </div>
@@ -201,7 +201,7 @@ else
                     </div>
 
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Amount Collected (Rs.)</label>
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Amount Collected (Rs.)</label>
                         <div style="position: relative;">
                             <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-secondary);">Rs.</span>
                             <InputNumber @bind-Value="paymentModel.AmountCollected" class="form-control" style="padding: 12px 12px 12px 42px; font-size: 1.1rem; font-weight: 700; color: var(--accent-success); border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
@@ -209,7 +209,7 @@ else
                     </div>
                     
                     <div style="margin-bottom: 32px;">
-                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #374151;">Payment Method</label>
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Payment Method</label>
                         <InputSelect @bind-Value="paymentModel.PaymentMethodId" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;">
                             <option value="">-- Select Method --</option>
                             @if (paymentMethods != null)
@@ -501,3 +501,5 @@ else
         NavManager.NavigateTo($"/payments/receipt/{paymentModel.Id}");
     }
 }
+
+
