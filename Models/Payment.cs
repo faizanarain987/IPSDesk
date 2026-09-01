@@ -22,9 +22,13 @@ public class Payment : AuditableEntity
     
     public decimal TotalCharge { get; set; } = 0;
     
+    public decimal PackageCharges { get; set; } = 0;
+    public decimal ConnectionCharges { get; set; } = 0;
+    public decimal RouterCharges { get; set; } = 0;
+    public decimal FibreCharges { get; set; } = 0;
+    public decimal ComplainCharges { get; set; } = 0;
+    public decimal OtherCharges { get; set; } = 0;
 
-    
     public DateTime PaymentDate { get; set; } = DateTime.Now;
     
-    public ICollection<PaymentItem> Items { get; set; } = new List<PaymentItem>();
 }

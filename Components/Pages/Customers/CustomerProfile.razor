@@ -24,16 +24,19 @@ else
                 <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/customers")' title="Back to Customers">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 </button>
-                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), #8B5CF6); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: 600; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);">
-                    @(string.IsNullOrEmpty(customer.Name) ? "?" : customer.Name.Substring(0, 1).ToUpper())
-                </div>
             </div>
 
             <!-- Profile Info -->
             <div style="flex: 1;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <h1 style="margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px;">@customer.Name</h1>
+                        <div style="margin: 0 0 16px 0;">
+                            <h1 style="margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); text-transform: lowercase;">@customer.ConnectionId</h1>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.15rem; color: var(--text-secondary); font-weight: 500; margin-top: 6px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                @customer.Name
+                            </div>
+                        </div>
                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 24px;">
                             <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: @(customer.IsActive ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"); color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 600; font-size: 0.85rem;">
                                 <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px;"></span>

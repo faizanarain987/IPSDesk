@@ -70,7 +70,6 @@ else
                         </div>
                     </div>
                 }
-                <div style="color: #64748b; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 12px;">Invoice</div>
             </div>
             
             <!-- BILL TO & INVOICE INFO -->
@@ -117,95 +116,91 @@ else
                 }
             </div>
             
-            <!-- PREVIOUS PACKAGE -->
-            <div style="margin-bottom: 20px; border-bottom: 1px dashed #ccc; padding-bottom: 20px;">
-                <div style="font-weight: bold; font-size: 16px; margin-bottom: 12px; color: #0f172a;">Previous Package</div>
-                @if (prevPkg != null && prevPkg.Package != null)
-                {
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px;">
-                        <div style="color: #64748b;">Package</div>
-                        <div style="font-weight: bold; color: #334155;">@prevPkg.Package.Name</div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px;">
-                        <div style="color: #64748b;">Package Amount</div>
-                        <div style="font-weight: bold; color: #334155;">Rs. @prevPkg.PackagePrice.ToString("N0")</div>
-                    </div>
-                }
-                else
-                {
-                    <div style="font-size: 14px; color: #64748b;">No previous package on record.</div>
-                }
-            </div>
-            
-            <!-- PAYMENT DETAILS -->
-            <div style="margin-bottom: 20px; border-bottom: 1px dashed #ccc; padding-bottom: 20px;">
-                <div style="font-weight: bold; font-size: 16px; margin-bottom: 12px; color: #0f172a;">Payment Details</div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px;">
-                    <div style="color: #64748b;">Last Amount Paid</div>
-                    <div style="font-weight: bold; color: #334155;">Rs. @payment.AmountCollected.ToString("N0")</div>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px;">
-                    <div style="color: #64748b;">Last Payment Date</div>
-                    <div style="font-weight: bold; color: #334155;">@payment.PaymentDate.ToString("dd-MMM-yyyy")</div>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 14px;">
-                    <div style="color: #64748b;">Payment Method</div>
-                    <div style="font-weight: bold; color: #334155;">@(payment.PaymentMethod?.Name ?? "Cash")</div>
-                </div>
-                
+            <!-- RECEIPT BREAKDOWN -->
+            <div style="margin-bottom: 20px;">
                 @{
-                    decimal prevOutstanding = (payment.Customer?.CurrentBalance ?? 0) + payment.AmountCollected - payment.TotalCharge;
-                    decimal currentPkgAmount = currentPkg != null ? currentPkg.PackagePrice : 0;
-                    decimal actualPreviousOutstanding = prevOutstanding - currentPkgAmount;
-                    if (actualPreviousOutstanding < 0) actualPreviousOutstanding = 0;
-                    decimal totalDue = prevOutstanding + payment.TotalCharge - payment.Discount;
+                    decimal S = (payment.Customer?.CurrentBalance ?? 0) + payment.AmountCollected;
+                    decimal prevBalance = 0;
+                    
+                    decimal X1 = S - payment.TotalCharge + payment.Discount + payment.PackageCharges;
+                    if (payment.PackageCharges > 0 && X1 >= payment.PackageCharges)
+                    {
+                        prevBalance = X1;
+                    }
+                    else
+                    {
+                        prevBalance = S - payment.TotalCharge + payment.Discount;
+                    }
+                    
+                    decimal displayPrevBalance = prevBalance;
+                    
+                    if (payment.PackageCharges > 0)
+                    {
+                        if (prevBalance == payment.PackageCharges)
+                        {
+                            displayPrevBalance = 0;
+                        }
+                        else if (prevBalance > payment.PackageCharges)
+                        {
+                            displayPrevBalance = prevBalance - payment.PackageCharges;
+                        }
+                    }
+                    
+                    decimal totalAmountDue = displayPrevBalance + payment.TotalCharge - payment.Discount;
                 }
+                <div style="font-weight: bold; font-size: 16px; margin-bottom: 12px; color: #0f172a; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">Receipt Breakdown</div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
-                    <div style="color: #64748b;">Previous Outstanding</div>
-                    <div style="font-weight: bold; color: #334155;">Rs. @actualPreviousOutstanding.ToString("N0")</div>
+                    <div style="color: #64748b;">Previous Balance</div>
+                    <div style="font-weight: 500; color: #334155;">Rs. @displayPrevBalance.ToString("N0")</div>
                 </div>
                 
-                @if (currentPkg != null)
-                {
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #94a3b8; padding-bottom: 8px;">
-                        <div style="color: #64748b;">Current Package Amount</div>
-                        <div style="font-weight: bold; color: #334155;">Rs. @currentPkgAmount.ToString("N0")</div>
-                    </div>
-                }
-                
-                @if (payment.Items != null && payment.Items.Any())
-                {
-                    @foreach (var item in payment.Items)
-                    {
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #94a3b8; padding-bottom: 8px;">
-                            <div style="color: #64748b;">@item.Description</div>
-                            <div style="font-weight: bold; color: #334155;">Rs. @item.Amount.ToString("N0")</div>
-                        </div>
-                    }
-                }
-                
-                @if (payment.Discount > 0)
-                {
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #94a3b8; padding-bottom: 8px;">
-                        <div style="color: #64748b;">Discount Applied</div>
-                        <div style="font-weight: bold; color: #ef4444;">- Rs. @payment.Discount.ToString("N0")</div>
-                    </div>
-                }
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <div style="color: #64748b;">Package Charges</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.PackageCharges.ToString("N0")</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <div style="color: #64748b;">Connection Charges</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.ConnectionCharges.ToString("N0")</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <div style="color: #64748b;">Router Charges</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.RouterCharges.ToString("N0")</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <div style="color: #64748b;">Fibre Charges</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.FibreCharges.ToString("N0")</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <div style="color: #64748b;">Complain Charges</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.ComplainCharges.ToString("N0")</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <div style="color: #64748b;">Other Charges</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.OtherCharges.ToString("N0")</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">
+                    <div style="color: #64748b;">Total Charges</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.TotalCharge.ToString("N0")</div>
+                </div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; padding-top: 8px;">
-                    <div style="color: #0f172a; font-weight: bold;">Total Amount Due</div>
-                    <div style="font-weight: bold; color: #0f172a;">Rs. @totalDue.ToString("N0")</div>
+                    <div style="color: #64748b;">Discount Applied</div>
+                    <div style="font-weight: bold; color: #ef4444;">- Rs. @payment.Discount.ToString("N0")</div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; padding-top: 8px;">
+                    <div style="color: #0f172a; font-weight: bold;">Amount To Be Pay After Discount</div>
+                    <div style="font-weight: bold; color: #0f172a;">Rs. @totalAmountDue.ToString("N0")</div>
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 14px;">
-                    <div style="color: #64748b;">Amount Paid</div>
+                    <div style="color: #64748b;">Amount Collected</div>
                     <div style="font-weight: bold; color: #0f172a;">Rs. @payment.AmountCollected.ToString("N0")</div>
                 </div>
                 
                 <div style="border: 2px solid #334155; padding: 16px; text-align: center; margin-top: 24px; border-radius: 4px;">
-                    <div style="color: #0f172a; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Remaining Amount / Outstanding Balance</div>
+                    <div style="color: #0f172a; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Customer Balance</div>
                     <div style="color: #dc2626; font-size: 24px; font-weight: 800;">Rs. @(payment.Customer?.CurrentBalance.ToString("N0") ?? "0")</div>
                 </div>
             </div>
@@ -269,7 +264,6 @@ else
             .Include(p => p.Customer)
                 .ThenInclude(c => c.CurrentPackage)
             .Include(p => p.PaymentMethod)
-            .Include(p => p.Items)
             .FirstOrDefaultAsync(p => p.Id == Id);
             
         if (payment == null)

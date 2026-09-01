@@ -1,0 +1,264 @@
+@page "/payments/edit/{Id:guid}"
+
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+@inject IPSDesk.Services.ICurrentUserService CurrentUserService
+@inject IPSDesk.Services.ToastService ToastService
+
+<PageTitle>Edit Payment - Diamond Net</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+    <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/payments")' title="Back to Payments">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <div>
+                <h1 style="margin: 0; font-weight: 700;">Edit Payment</h1>
+                <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 0.95rem;">Modify collected amount, method, and date.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="glass-panel" style="padding: 32px;">
+        @if (isLoading)
+        {
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner" style="margin: 0 auto 16px auto;"></div>
+                <p>Loading payment data...</p>
+            </div>
+        }
+        else if (paymentToEdit == null)
+        {
+            <div style="text-align: center; padding: 40px; color: var(--accent-danger);">
+                <p>Payment record not found.</p>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="this" FormName="editPaymentForm" OnValidSubmit="ProcessEditPayment">
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Customer</label>
+                    <div style="padding: 12px; background: #F3F4F6; border-radius: 10px; color: var(--text-secondary); font-weight: 500;">
+                        <span style="font-weight: 800; color: var(--text-primary);">@(paymentToEdit.Customer?.ConnectionId?.ToLower() ?? "N/A")</span> (@(paymentToEdit.Customer?.Name ?? "Unknown"))
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Receipt Number</label>
+                    <div style="padding: 12px; background: #F3F4F6; border-radius: 10px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">
+                        @paymentToEdit.ReceiptNumber
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px; border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px; background: var(--bg-secondary);">
+                    <label style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 12px; display: block;">Items Charged</label>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Package Charges</label>
+                            <InputNumber @bind-Value="editPackageCharges" class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Connection Charges</label>
+                            <InputNumber @bind-Value="editConnectionCharges" class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Router Charges</label>
+                            <InputNumber @bind-Value="editRouterCharges" class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Fibre Charges</label>
+                            <InputNumber @bind-Value="editFibreCharges" class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Complain Charges</label>
+                            <InputNumber @bind-Value="editComplainCharges" class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Other Charges</label>
+                            <InputNumber @bind-Value="editOtherCharges" class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px;" />
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Discount (Rs.)</label>
+                        <InputNumber @bind-Value="editDiscount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Total Charge (Rs.)</label>
+                        <div style="padding: 12px; font-size: 1.1rem; font-weight: 700; color: var(--accent-primary); border-radius: 10px; background: rgba(99, 102, 241, 0.1);">
+                            @((editPackageCharges + editConnectionCharges + editRouterCharges + editFibreCharges + editComplainCharges + editOtherCharges - editDiscount).ToString("N0"))
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Amount Collected (Rs.)</label>
+                    <InputNumber @bind-Value="editAmount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Payment Method</label>
+                    <InputSelect @bind-Value="editMethodId" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;">
+                        @if (methods != null)
+                        {
+                            @foreach (var method in methods)
+                            {
+                                <option value="@method.Id">@method.Name</option>
+                            }
+                        }
+                    </InputSelect>
+                </div>
+                
+                <div style="margin-bottom: 32px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Payment Date</label>
+                    <InputDate @bind-Value="editDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px 0 rgba(99, 102, 241, 0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 14px 0 rgba(99, 102, 241, 0.4)';">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save Changes
+                </button>
+            </EditForm>
+        }
+    </div>
+</div>
+
+<style>
+    .spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top-color: var(--accent-primary);
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool isLoading = true;
+    private Payment? paymentToEdit;
+    private List<PaymentMethod>? methods;
+
+    private Guid? editMethodId;
+    private decimal editAmount;
+    private DateTime editDate;
+    
+    private decimal editPackageCharges;
+    private decimal editConnectionCharges;
+    private decimal editRouterCharges;
+    private decimal editFibreCharges;
+    private decimal editComplainCharges;
+    private decimal editOtherCharges;
+    private decimal editDiscount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        methods = await DbContext.PaymentMethods.Where(m => m.IsActive).OrderBy(m => m.Name).ToListAsync();
+        
+        paymentToEdit = await DbContext.Payments
+            .Include(p => p.Customer)
+            .FirstOrDefaultAsync(p => p.Id == Id && !p.IsDeleted);
+
+        if (paymentToEdit != null)
+        {
+            editMethodId = paymentToEdit.PaymentMethodId;
+            editAmount = paymentToEdit.AmountCollected;
+            editDate = paymentToEdit.PaymentDate;
+            editPackageCharges = paymentToEdit.PackageCharges;
+            editConnectionCharges = paymentToEdit.ConnectionCharges;
+            editRouterCharges = paymentToEdit.RouterCharges;
+            editFibreCharges = paymentToEdit.FibreCharges;
+            editComplainCharges = paymentToEdit.ComplainCharges;
+            editOtherCharges = paymentToEdit.OtherCharges;
+            editDiscount = paymentToEdit.Discount;
+        }
+
+        isLoading = false;
+    }
+
+    private async Task ProcessEditPayment()
+    {
+        if (paymentToEdit == null || editMethodId == null || editMethodId == Guid.Empty) return;
+
+        if (editAmount < 0)
+        {
+            ToastService.ShowError("Amount cannot be negative.");
+            return;
+        }
+
+        try
+        {
+            var dbPayment = await DbContext.Payments
+                .Include(p => p.Customer)
+                .FirstOrDefaultAsync(p => p.Id == paymentToEdit.Id);
+
+            if (dbPayment == null || dbPayment.IsDeleted || dbPayment.Customer == null) return;
+
+            decimal newSubtotal = editPackageCharges + editConnectionCharges + editRouterCharges + editFibreCharges + editComplainCharges + editOtherCharges;
+            decimal newTotalCharge = newSubtotal - editDiscount;
+            decimal chargeDifference = newTotalCharge - dbPayment.TotalCharge;
+            decimal paymentDifference = editAmount - dbPayment.AmountCollected;
+
+            if (chargeDifference != 0 || paymentDifference != 0)
+            {
+                decimal balanceChange = chargeDifference - paymentDifference;
+                dbPayment.Customer.CurrentBalance += balanceChange;
+                
+                var ledger = new CustomerLedger
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = dbPayment.Customer.Id,
+                    TransactionDate = DateTime.Now,
+                    Description = $"Payment Edited (Correction: {dbPayment.ReceiptNumber})",
+                    Credit = balanceChange < 0 ? Math.Abs(balanceChange) : 0,
+                    Debit = balanceChange > 0 ? balanceChange : 0,
+                    Balance = dbPayment.Customer.CurrentBalance
+                };
+                DbContext.CustomerLedgers.Add(ledger);
+                DbContext.Customers.Update(dbPayment.Customer);
+            }
+
+            dbPayment.PackageCharges = editPackageCharges;
+            dbPayment.ConnectionCharges = editConnectionCharges;
+            dbPayment.RouterCharges = editRouterCharges;
+            dbPayment.FibreCharges = editFibreCharges;
+            dbPayment.ComplainCharges = editComplainCharges;
+            dbPayment.OtherCharges = editOtherCharges;
+            dbPayment.Discount = editDiscount;
+            dbPayment.TotalCharge = newTotalCharge;
+
+            dbPayment.PaymentMethodId = editMethodId.Value;
+            dbPayment.AmountCollected = editAmount;
+            dbPayment.PaymentDate = editDate;
+            dbPayment.UpdatedById = CurrentUserService.UserId;
+            dbPayment.UpdatedByName = CurrentUserService.UserName;
+            dbPayment.UpdatedAt = DateTime.Now;
+
+            DbContext.Payments.Update(dbPayment);
+            await DbContext.SaveChangesAsync();
+
+            ToastService.ShowSuccess($"Payment updated successfully.");
+            NavManager.NavigateTo("/payments");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error updating payment: {ex.Message}");
+        }
+    }
+}

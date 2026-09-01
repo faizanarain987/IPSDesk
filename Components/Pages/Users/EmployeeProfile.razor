@@ -173,19 +173,29 @@ else
                             <th>Customer</th>
                             <th>Package</th>
                             <th>Discount</th>
-                            <th>Amount Paid</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var renewal in renewalsRecorded.OrderByDescending(r => r.RenewalDate))
                         {
                             <tr>
-                                <td>@renewal.RenewalDate.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                <td>
+                                    <div style="font-weight: 500;">@renewal.RenewalDate.ToString("MMM dd, yyyy")</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">@renewal.RenewalDate.ToString("hh:mm tt")</div>
+                                </td>
                                 <td>
                                     @if (renewal.Customer != null)
                                     {
-                                        <a href="/customers/profile/@renewal.Customer.Id" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">
-                                            @renewal.Customer.Name
+                                        <a href="/customers/profile/@renewal.Customer.Id" style="text-decoration: none;">
+                                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-primary); letter-spacing: 0.5px; text-transform: lowercase;">
+                                                    @(renewal.Customer.ConnectionId ?? "N/A")
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                                    @renewal.Customer.Name
+                                                </div>
+                                            </div>
                                         </a>
                                     }
                                     else
@@ -193,14 +203,12 @@ else
                                         <span style="color: var(--text-secondary);">Unknown</span>
                                     }
                                 </td>
-                                <td>@(renewal.Package?.Name ?? "Unknown")</td>
-                                <td>Rs. @renewal.Discount.ToString("N0")</td>
                                 <td>
-                                    <div style="display: flex; justify-content: flex-start; gap: 8px; color: var(--accent-success); font-weight: 500; min-width: 80px;">
-                                        <span style="color: var(--text-secondary); font-size: 0.9em;">Rs.</span>
-                                        <span>@renewal.AmountPaid.ToString("N0")</span>
-                                    </div>
+                                    <span style="background: #f1f5f9; color: var(--text-secondary); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                        @(renewal.Package?.Name ?? "Unknown")
+                                    </span>
                                 </td>
+                                <td style="color: var(--accent-primary); font-weight: 600;">Rs. @renewal.Discount.ToString("N0")</td>
                             </tr>
                         }
                     </tbody>

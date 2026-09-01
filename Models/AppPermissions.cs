@@ -24,12 +24,14 @@ public static class AppPermissions
         public const string View = "Permissions.Payments.View";
         public const string ViewHistory = "Permissions.Payments.ViewHistory";
         public const string Record = "Permissions.Payments.Record";
+        public const string Edit = "Permissions.Payments.Edit";
         public const string Delete = "Permissions.Payments.Delete";
     }
 
     public static class Renewals
     {
         public const string ViewHistory = "Permissions.Renewals.ViewHistory";
+        public const string Edit = "Permissions.Renewals.Edit";
         public const string Delete = "Permissions.Renewals.Delete";
     }
 

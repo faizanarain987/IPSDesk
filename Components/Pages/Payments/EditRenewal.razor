@@ -1,0 +1,193 @@
+@page "/renewals/edit/{Id:guid}"
+@attribute [Authorize(Policy = IPSDesk.Models.AppPermissions.Renewals.Edit)]
+
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager NavManager
+@inject IPSDesk.Services.ICurrentUserService CurrentUserService
+@inject IPSDesk.Services.ToastService ToastService
+
+<PageTitle>Edit Renewal - Diamond Net</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+    <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/renewals/history")' title="Back to Renewals">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <div>
+                <h1 style="margin: 0; font-weight: 700;">Edit Package Renewal</h1>
+                <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 0.95rem;">Modify package, discount, and date.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="glass-panel" style="padding: 32px;">
+        @if (isLoading)
+        {
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner" style="margin: 0 auto 16px auto;"></div>
+                <p>Loading renewal data...</p>
+            </div>
+        }
+        else if (renewalToEdit == null)
+        {
+            <div style="text-align: center; padding: 40px; color: var(--accent-danger);">
+                <p>Renewal record not found.</p>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="this" FormName="editRenewalForm" OnValidSubmit="ProcessEditRenewal">
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Customer</label>
+                    <div style="padding: 12px; background: #F3F4F6; border-radius: 10px; color: var(--text-secondary); font-weight: 500;">
+                        <span style="font-weight: 800; color: var(--text-primary);">@(renewalToEdit.Customer?.ConnectionId?.ToUpper() ?? "N/A")</span> (@(renewalToEdit.Customer?.Name ?? "Unknown"))
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Select Package</label>
+                    <InputSelect @bind-Value="editPackageId" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;">
+                        @if (packages != null)
+                        {
+                            @foreach (var pkg in packages)
+                            {
+                                <option value="@pkg.Id">@pkg.Name — Rs. @pkg.MonthlyPrice.ToString("N0")</option>
+                            }
+                        }
+                    </InputSelect>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Discount (Rs.)</label>
+                    <InputNumber @bind-Value="editDiscount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                </div>
+                
+                <div style="margin-bottom: 32px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Renewal Date</label>
+                    <InputDate @bind-Value="editRenewalDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px 0 rgba(99, 102, 241, 0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 14px 0 rgba(99, 102, 241, 0.4)';">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save Changes
+                </button>
+            </EditForm>
+        }
+    </div>
+</div>
+
+<style>
+    .spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top-color: var(--accent-primary);
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool isLoading = true;
+    private MonthlyPackageHistory? renewalToEdit;
+    private List<Package>? packages;
+
+    private Guid? editPackageId;
+    private decimal editDiscount;
+    private DateTime editRenewalDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        packages = await DbContext.Packages.Where(p => p.IsActive).OrderBy(p => p.MonthlyPrice).ToListAsync();
+        
+        renewalToEdit = await DbContext.MonthlyPackageHistories
+            .Include(h => h.Customer)
+            .FirstOrDefaultAsync(h => h.Id == Id && !h.IsDeleted);
+
+        if (renewalToEdit != null)
+        {
+            editPackageId = renewalToEdit.PackageId;
+            editDiscount = renewalToEdit.Discount;
+            editRenewalDate = renewalToEdit.RenewalDate;
+        }
+
+        isLoading = false;
+    }
+
+    private async Task ProcessEditRenewal()
+    {
+        if (renewalToEdit == null || editPackageId == null || editPackageId == Guid.Empty) return;
+
+        var packageToCharge = packages?.FirstOrDefault(p => p.Id == editPackageId);
+        if (packageToCharge == null) return;
+
+        if (editDiscount > packageToCharge.MonthlyPrice)
+        {
+            ToastService.ShowError("Discount cannot be greater than the package price.");
+            return;
+        }
+
+        try
+        {
+            var dbRenewal = await DbContext.MonthlyPackageHistories
+                .Include(h => h.Customer)
+                .FirstOrDefaultAsync(h => h.Id == renewalToEdit.Id);
+
+            if (dbRenewal == null || dbRenewal.IsDeleted || dbRenewal.Customer == null) return;
+
+            decimal oldNetFee = dbRenewal.PackagePrice - dbRenewal.Discount;
+            decimal newNetFee = packageToCharge.MonthlyPrice - editDiscount;
+            decimal difference = newNetFee - oldNetFee;
+
+            if (difference != 0)
+            {
+                dbRenewal.Customer.CurrentBalance += difference;
+                
+                var ledger = new CustomerLedger
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = dbRenewal.Customer.Id,
+                    TransactionDate = DateTime.Now,
+                    Description = $"Package Renewal Edited (Correction)",
+                    Debit = difference > 0 ? difference : 0,
+                    Credit = difference < 0 ? Math.Abs(difference) : 0,
+                    Balance = dbRenewal.Customer.CurrentBalance
+                };
+                DbContext.CustomerLedgers.Add(ledger);
+                DbContext.Customers.Update(dbRenewal.Customer);
+            }
+
+            dbRenewal.PackageId = packageToCharge.Id;
+            dbRenewal.PackagePrice = packageToCharge.MonthlyPrice;
+            dbRenewal.Discount = editDiscount;
+            dbRenewal.RenewalDate = editRenewalDate;
+            dbRenewal.RemainingBalance = dbRenewal.Customer.CurrentBalance;
+            dbRenewal.UpdatedById = CurrentUserService.UserId;
+            dbRenewal.UpdatedByName = CurrentUserService.UserName;
+            dbRenewal.UpdatedAt = DateTime.Now;
+
+            DbContext.MonthlyPackageHistories.Update(dbRenewal);
+            await DbContext.SaveChangesAsync();
+
+            ToastService.ShowSuccess($"Renewal updated successfully.");
+            NavManager.NavigateTo("/payments/renewals");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error updating renewal: {ex.Message}");
+        }
+    }
+}
