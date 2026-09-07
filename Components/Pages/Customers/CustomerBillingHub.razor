@@ -130,7 +130,16 @@ else
                     
                     <div style="margin-bottom: 32px;">
                         <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Billing Date</label>
-                        <InputDate @bind-Value="renewalDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div>
+                                <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary); font-weight: 500;">Date</label>
+                                <input type="date" @bind="billingDateOnly" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 10px 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary); font-weight: 500;">Time</label>
+                                <input type="time" @bind="billingTimeOnly" class="form-control" style="width: 100%; padding: 10px 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn-primary" disabled="@(!CanRenewPackage)" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4); transition: transform 0.2s, box-shadow 0.2s; @(CanRenewPackage ? "" : "opacity: 0.6; cursor: not-allowed;")" onmouseover="@(CanRenewPackage ? "this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px 0 rgba(99, 102, 241, 0.5)';" : "")" onmouseout="@(CanRenewPackage ? "this.style.transform='none'; this.style.boxShadow='0 4px 14px 0 rgba(99, 102, 241, 0.4)';" : "")">
@@ -236,6 +245,20 @@ else
                             <InputNumber @bind-Value="paymentModel.AmountCollected" class="form-control" style="padding: 12px 12px 12px 42px; font-size: 1.1rem; font-weight: 700; color: var(--accent-success); border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
                         </div>
                     </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Collection Date</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div>
+                                <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary); font-weight: 500;">Date</label>
+                                <input type="date" @bind="collectionDateOnly" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 10px 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary); font-weight: 500;">Time</label>
+                                <input type="time" @bind="collectionTimeOnly" class="form-control" style="width: 100%; padding: 10px 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                            </div>
+                        </div>
+                    </div>
                     
                     <div style="margin-bottom: 32px;">
                         <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Payment Method</label>
@@ -288,9 +311,34 @@ else
     private DateTime renewalDate = DateTime.Now;
     private decimal discount = 0;
 
+    private DateOnly billingDateOnly
+    {
+        get => DateOnly.FromDateTime(renewalDate);
+        set => renewalDate = new DateTime(value.Year, value.Month, value.Day, renewalDate.Hour, renewalDate.Minute, renewalDate.Second);
+    }
+
+    private TimeOnly billingTimeOnly
+    {
+        get => TimeOnly.FromDateTime(renewalDate);
+        set => renewalDate = new DateTime(renewalDate.Year, renewalDate.Month, renewalDate.Day, value.Hour, value.Minute, value.Second);
+    }
+
     // Payment Properties
     private List<PaymentMethod>? paymentMethods;
     private Payment paymentModel = new();
+    private DateTime collectionDate = DateTime.Now;
+
+    private DateOnly collectionDateOnly
+    {
+        get => DateOnly.FromDateTime(collectionDate);
+        set => collectionDate = new DateTime(value.Year, value.Month, value.Day, collectionDate.Hour, collectionDate.Minute, collectionDate.Second);
+    }
+
+    private TimeOnly collectionTimeOnly
+    {
+        get => TimeOnly.FromDateTime(collectionDate);
+        set => collectionDate = new DateTime(collectionDate.Year, collectionDate.Month, collectionDate.Day, value.Hour, value.Minute, value.Second);
+    }
     
     private decimal Subtotal => paymentModel.PackageCharges + paymentModel.ConnectionCharges + paymentModel.RouterCharges + paymentModel.FibreCharges + paymentModel.ComplainCharges + paymentModel.OtherCharges;
     private decimal TotalAmount => Subtotal - paymentModel.Discount;
@@ -413,7 +461,7 @@ else
         {
             Id = Guid.NewGuid(),
             CustomerId = customer.Id,
-            TransactionDate = DateTime.Now,
+            TransactionDate = renewalDate,
             Description = $"Monthly Package Charge ({packageToCharge.Name})",
             Debit = netFee,
             Credit = 0,
@@ -514,7 +562,7 @@ else
                 {
                     Id = Guid.NewGuid(),
                     CustomerId = customer.Id,
-                    TransactionDate = DateTime.Now,
+                    TransactionDate = collectionDate,
                     Description = descriptionString,
                 Debit = newCharges,
                 Credit = 0,
@@ -532,7 +580,7 @@ else
             {
                 Id = Guid.NewGuid(),
                 CustomerId = customer.Id,
-                TransactionDate = DateTime.Now,
+                TransactionDate = collectionDate,
                 Description = "Payment Received",
                 Debit = 0,
                 Credit = paymentModel.AmountCollected,
@@ -551,7 +599,7 @@ else
         }
         
         paymentModel.CustomerId = customer.Id;
-        paymentModel.PaymentDate = DateTime.Now;
+        paymentModel.PaymentDate = collectionDate;
         
         DbContext.Payments.Add(paymentModel);
         DbContext.Customers.Update(customer);

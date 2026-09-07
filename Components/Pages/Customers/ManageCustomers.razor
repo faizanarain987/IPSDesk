@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="responsive-flex" style="display: flex; gap: 16px; align-items: center;">
-            <input type="text" @bind="searchText" @bind:event="oninput" @bind:after="ResetPage" class="form-control header-search" placeholder="Search by ID, Name or Phone..." style="margin-bottom: 0;" />
+            <input type="text" @bind="searchText" @bind:event="oninput" @bind:after="ResetPage" class="form-control header-search" placeholder="Search by ID, Name, Phone or Area..." style="margin-bottom: 0;" />
             <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.Customers.Create">
                 <Authorized>
                     <div style="display: flex; gap: 12px;">
@@ -50,11 +50,35 @@
         <table class="premium-table" style="margin: 0; width: 100%; min-width: 800px;">
             <thead>
                 <tr>
-                    <th>Conn ID</th>
-                    <th>Name</th>
+                    <th style="cursor: pointer; user-select: none;" @onclick='() => SetSort("ConnId")'>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span>Conn ID</span>
+                            @if (sortColumn == "ConnId")
+                            {
+                                <span style="font-size: 0.75rem;">@(isAscending ? "▲" : "▼")</span>
+                            }
+                        </div>
+                    </th>
+                    <th style="cursor: pointer; user-select: none;" @onclick='() => SetSort("Name")'>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span>Name</span>
+                            @if (sortColumn == "Name")
+                            {
+                                <span style="font-size: 0.75rem;">@(isAscending ? "▲" : "▼")</span>
+                            }
+                        </div>
+                    </th>
                     <th>Phone</th>
                     <th>Package</th>
-                    <th>Balance</th>
+                    <th style="cursor: pointer; user-select: none;" @onclick='() => SetSort("Balance")'>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span>Balance</span>
+                            @if (sortColumn == "Balance")
+                            {
+                                <span style="font-size: 0.75rem;">@(isAscending ? "▲" : "▼")</span>
+                            }
+                        </div>
+                    </th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -78,7 +102,13 @@
                 {
                     <tr>
                         <td style="font-weight: 500; color: var(--text-primary);">@customer.ConnectionId</td>
-                        <td style="color: var(--text-primary);">@customer.Name</td>
+                        <td style="color: var(--text-primary);">
+                            <div style="font-weight: 500;">@customer.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(customer.Area))
+                            {
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">@customer.Area</div>
+                            }
+                        </td>
                         <td style="color: #4B5563;">@customer.Phone</td>
                         <td style="color: #4B5563;">
                             @(customer.CurrentPackage?.Name ?? "N/A")
@@ -229,15 +259,57 @@
     private int currentPage = 1;
     private int pageSize = 10;
     
-    private IEnumerable<Customer> filteredCustomers => 
-        string.IsNullOrWhiteSpace(searchText) 
-            ? (customers ?? Enumerable.Empty<Customer>())
-            : (customers ?? Enumerable.Empty<Customer>())
-                .Where(c => 
+    private string sortColumn = "ConnId";
+    private bool isAscending = true;
+    private static readonly NaturalSortComparer naturalComparer = new();
+
+    private void SetSort(string column)
+    {
+        if (sortColumn == column)
+        {
+            isAscending = !isAscending;
+        }
+        else
+        {
+            sortColumn = column;
+            isAscending = true;
+        }
+        ResetPage();
+    }
+
+    private IEnumerable<Customer> filteredCustomers
+    {
+        get
+        {
+            var list = customers ?? Enumerable.Empty<Customer>();
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                list = list.Where(c => 
                     (c.ConnectionId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (c.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (c.Phone?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    (c.Phone?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.Area?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
                 );
+            }
+
+            return sortColumn switch
+            {
+                "ConnId" => isAscending 
+                    ? list.OrderBy(c => c.ConnectionId, naturalComparer)
+                    : list.OrderByDescending(c => c.ConnectionId, naturalComparer),
+                "Name" => isAscending 
+                    ? list.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                    : list.OrderByDescending(c => c.Name, StringComparer.OrdinalIgnoreCase),
+                "Balance" => isAscending 
+                    ? list.OrderBy(c => c.CurrentBalance)
+                    : list.OrderByDescending(c => c.CurrentBalance),
+                _ => isAscending 
+                    ? list.OrderBy(c => c.ConnectionId, naturalComparer)
+                    : list.OrderByDescending(c => c.ConnectionId, naturalComparer)
+            };
+        }
+    }
 
     private int totalPages => !filteredCustomers.Any() ? 1 : (int)Math.Ceiling((double)filteredCustomers.Count() / pageSize);
     private IEnumerable<Customer> displayedCustomers => filteredCustomers.Skip((currentPage - 1) * pageSize).Take(pageSize);
@@ -262,12 +334,13 @@
 
     private async Task LoadData()
     {
-        customers = await DbContext.Customers
+        var rawCustomers = await DbContext.Customers
             .Include(c => c.CurrentPackage)
             .Include(c => c.MonthlyHistory)
             .Where(c => !c.IsDeleted)
-            .OrderBy(c => c.ConnectionId)
             .ToListAsync();
+
+        customers = rawCustomers.OrderBy(c => c.ConnectionId, naturalComparer).ToList();
             
         packages = await DbContext.Packages.Where(p => p.IsActive).ToListAsync();
     }
