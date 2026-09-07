@@ -30,13 +30,7 @@ else
             <div style="flex: 1;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <div style="margin: 0 0 16px 0;">
-                            <h1 style="margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); text-transform: lowercase;">@customer.ConnectionId</h1>
-                            <div style="display: flex; align-items: center; gap: 8px; font-size: 1.15rem; color: var(--text-secondary); font-weight: 500; margin-top: 6px;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                                @customer.Name
-                            </div>
-                        </div>
+                        <h1 style="margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px;">@customer.Name <span style="font-weight: bold;">(@customer.ConnectionId)</span></h1>
                         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 24px;">
                             <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: @(customer.IsActive ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"); color: @(customer.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 600; font-size: 0.85rem;">
                                 <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px;"></span>
