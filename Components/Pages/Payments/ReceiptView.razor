@@ -119,41 +119,9 @@ else
             <!-- RECEIPT BREAKDOWN -->
             <div style="margin-bottom: 20px;">
                 @{
-                    decimal S = (payment.Customer?.CurrentBalance ?? 0) + payment.AmountCollected;
-                    decimal prevBalance = 0;
-                    
-                    decimal X1 = S - payment.TotalCharge + payment.Discount + payment.PackageCharges;
-                    if (payment.PackageCharges > 0 && X1 >= payment.PackageCharges)
-                    {
-                        prevBalance = X1;
-                    }
-                    else
-                    {
-                        prevBalance = S - payment.TotalCharge + payment.Discount;
-                    }
-                    
-                    decimal displayPrevBalance = prevBalance;
-                    
-                    if (payment.PackageCharges > 0)
-                    {
-                        if (prevBalance == payment.PackageCharges)
-                        {
-                            displayPrevBalance = 0;
-                        }
-                        else if (prevBalance > payment.PackageCharges)
-                        {
-                            displayPrevBalance = prevBalance - payment.PackageCharges;
-                        }
-                    }
-                    
-                    decimal totalAmountDue = displayPrevBalance + payment.TotalCharge - payment.Discount;
+                    decimal totalAmountDue = payment.TotalCharge - payment.Discount;
                 }
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 12px; color: #0f172a; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">Receipt Breakdown</div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
-                    <div style="color: #64748b;">Previous Balance</div>
-                    <div style="font-weight: 500; color: #334155;">Rs. @displayPrevBalance.ToString("N0")</div>
-                </div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
                     <div style="color: #64748b;">Package Charges</div>
@@ -201,7 +169,7 @@ else
                 
                 <div style="border: 2px solid #334155; padding: 16px; text-align: center; margin-top: 24px; border-radius: 4px;">
                     <div style="color: #0f172a; font-size: 14px; margin-bottom: 8px; font-weight: 500;">Customer Balance</div>
-                    <div style="color: #dc2626; font-size: 24px; font-weight: 800;">Rs. @(payment.Customer?.CurrentBalance.ToString("N0") ?? "0")</div>
+                    <div style="color: #dc2626; font-size: 24px; font-weight: 800;">Rs. @receiptFinalBalance.ToString("N0")</div>
                 </div>
             </div>
             
@@ -255,6 +223,9 @@ else
     private Payment? payment;
     private List<MonthlyPackageHistory> packageHistory = new();
     private CompanySettings? companySettings;
+    
+    private decimal receiptFinalBalance = 0;
+    private decimal displayPrevBalance = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -278,6 +249,13 @@ else
             .OrderByDescending(h => h.RenewalDate)
             .Take(2)
             .ToListAsync();
+            
+        var ledgers = await DbContext.CustomerLedgers
+            .Where(l => l.CustomerId == payment.CustomerId && l.TransactionDate <= payment.PaymentDate)
+            .ToListAsync();
+            
+        receiptFinalBalance = ledgers.Sum(l => l.Debit - l.Credit);
+        displayPrevBalance = receiptFinalBalance - payment.TotalCharge + payment.Discount + payment.AmountCollected;
     }
     
     private async Task DownloadPdf()

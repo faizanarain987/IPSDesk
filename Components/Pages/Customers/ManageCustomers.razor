@@ -254,7 +254,7 @@
     private List<Package>? packages;
     private bool isDeleteModalVisible = false;
     private Customer? customerToDelete;
-    private string searchText = string.Empty;
+    private string searchText = "diamond-";
 
     private int currentPage = 1;
     private int pageSize = 10;
@@ -285,8 +285,15 @@
 
             if (!string.IsNullOrWhiteSpace(searchText))
             {
+                string searchId = searchText;
+                if (!searchText.StartsWith("diamond-", StringComparison.OrdinalIgnoreCase))
+                {
+                    searchId = "diamond-" + searchText;
+                }
+
                 list = list.Where(c => 
                     (c.ConnectionId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.ConnectionId?.Contains(searchId, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (c.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (c.Phone?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (c.Area?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
