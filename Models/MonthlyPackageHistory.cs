@@ -19,4 +19,7 @@ public class MonthlyPackageHistory : AuditableEntity
     public decimal RemainingBalance { get; set; }
     
     public DateTime RenewalDate { get; set; } = DateTime.Now;
+    
+    public string Status { get; set; } = "Active";
+    public string? Comment { get; set; }
 }

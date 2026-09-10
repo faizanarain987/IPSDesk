@@ -68,6 +68,11 @@
                     <InputNumber @bind-Value="editDiscount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
                 </div>
                 
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Comment (Reason for change)</label>
+                    <InputText @bind-Value="editComment" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" placeholder="Leave empty for default reason if changing package" />
+                </div>
+
                 <div style="margin-bottom: 32px;">
                     <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Renewal Date</label>
                     <InputDate @bind-Value="editRenewalDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
@@ -108,6 +113,7 @@
     private Guid? editPackageId;
     private decimal editDiscount;
     private DateTime editRenewalDate;
+    private string? editComment;
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,6 +128,7 @@
             editPackageId = renewalToEdit.PackageId;
             editDiscount = renewalToEdit.Discount;
             editRenewalDate = renewalToEdit.RenewalDate;
+            editComment = renewalToEdit.Comment;
         }
 
         isLoading = false;
@@ -167,23 +174,61 @@
                     Balance = dbRenewal.Customer.CurrentBalance
                 };
                 DbContext.CustomerLedgers.Add(ledger);
-                DbContext.Customers.Update(dbRenewal.Customer);
             }
 
-            dbRenewal.PackageId = packageToCharge.Id;
-            dbRenewal.PackagePrice = packageToCharge.MonthlyPrice;
-            dbRenewal.Discount = editDiscount;
-            dbRenewal.RenewalDate = editRenewalDate;
-            dbRenewal.RemainingBalance = dbRenewal.Customer.CurrentBalance;
-            dbRenewal.UpdatedById = CurrentUserService.UserId;
-            dbRenewal.UpdatedByName = CurrentUserService.UserName;
-            dbRenewal.UpdatedAt = DateTime.Now;
+            bool packageChanged = dbRenewal.PackageId != packageToCharge.Id;
+            
+            if (packageChanged)
+            {
+                string defaultComment = $"Package changed from {(packages?.FirstOrDefault(p => p.Id == dbRenewal.PackageId)?.Name ?? "Old Package")} to {packageToCharge.Name}";
+                
+                dbRenewal.Status = "Reversed";
+                dbRenewal.Comment = string.IsNullOrWhiteSpace(editComment) ? defaultComment : editComment;
+                dbRenewal.UpdatedById = CurrentUserService.UserId;
+                dbRenewal.UpdatedByName = CurrentUserService.UserName;
+                dbRenewal.UpdatedAt = DateTime.Now;
 
-            DbContext.MonthlyPackageHistories.Update(dbRenewal);
+                DbContext.MonthlyPackageHistories.Update(dbRenewal);
+
+                var newRenewal = new MonthlyPackageHistory
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = dbRenewal.CustomerId,
+                    PackageId = packageToCharge.Id,
+                    PackagePrice = packageToCharge.MonthlyPrice,
+                    Discount = editDiscount,
+                    RemainingBalance = dbRenewal.Customer.CurrentBalance,
+                    RenewalDate = editRenewalDate,
+                    Status = "Active",
+                    Comment = null,
+                    CreatedById = CurrentUserService.UserId,
+                    CreatedByName = CurrentUserService.UserName,
+                    CreatedAt = DateTime.Now
+                };
+                DbContext.MonthlyPackageHistories.Add(newRenewal);
+                
+                dbRenewal.Customer.CurrentPackageId = packageToCharge.Id;
+            }
+            else
+            {
+                dbRenewal.PackageId = packageToCharge.Id;
+                dbRenewal.PackagePrice = packageToCharge.MonthlyPrice;
+                dbRenewal.Discount = editDiscount;
+                dbRenewal.RenewalDate = editRenewalDate;
+                dbRenewal.Comment = editComment;
+                dbRenewal.RemainingBalance = dbRenewal.Customer.CurrentBalance;
+                dbRenewal.UpdatedById = CurrentUserService.UserId;
+                dbRenewal.UpdatedByName = CurrentUserService.UserName;
+                dbRenewal.UpdatedAt = DateTime.Now;
+
+                DbContext.MonthlyPackageHistories.Update(dbRenewal);
+            }
+
+            DbContext.Customers.Update(dbRenewal.Customer);
             await DbContext.SaveChangesAsync();
 
             ToastService.ShowSuccess($"Renewal updated successfully.");
-            NavManager.NavigateTo("/payments/renewals");
+            NavManager.NavigateTo("/renewals/history");
         }
         catch (Exception ex)
         {

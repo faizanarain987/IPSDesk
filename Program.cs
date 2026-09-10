@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 builder.Services.AddScoped<IPSDesk.Services.ToastService>();
+builder.Services.AddScoped<IPSDesk.Services.PdfExportService>();
 builder.Services.AddScoped<IPSDesk.Services.ICurrentUserService, IPSDesk.Services.CurrentUserService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
