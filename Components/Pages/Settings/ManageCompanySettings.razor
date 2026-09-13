@@ -34,7 +34,7 @@
         <EditForm Model="@settings" OnValidSubmit="SaveSettings" style="display: flex; flex-direction: column;">
             <DataAnnotationsValidator />
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+            <div class="responsive-grid-2" style="margin-bottom: 32px;">
                 <div>
                     <label>Company Name <span style="color: red;">*</span></label>
                     <InputText @bind-Value="settings.CompanyName" class="form-control" />

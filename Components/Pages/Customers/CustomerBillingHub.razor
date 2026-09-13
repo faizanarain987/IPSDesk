@@ -183,7 +183,7 @@ else
                     
                     <div style="margin-bottom: 32px;">
                         <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Billing Date</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="responsive-grid-2" style="gap: 12px;">
                             <div>
                                 <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary); font-weight: 500;">Date</label>
                                 <input type="date" @bind="billingDateOnly" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 10px 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
@@ -224,7 +224,7 @@ else
                     <div style="margin-bottom: 24px; border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px; background: var(--bg-secondary);">
                         <label style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 12px; display: block;">Items to Charge</label>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="responsive-grid-2" style="gap: 16px;">
                             <div>
                                 <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Package Charges</label>
                                 <InputNumber @bind-Value="paymentModel.PackageCharges" disabled class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px; background: #f1f5f9; color: #64748b; cursor: not-allowed;" />
@@ -257,7 +257,7 @@ else
                         </div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div class="responsive-grid-2" style="margin-bottom: 20px; gap: 16px;">
                         <div>
                             <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Discount (Rs.)</label>
                             <InputNumber @bind-Value="paymentModel.Discount" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
@@ -280,7 +280,7 @@ else
 
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-primary);">Collection Date</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="responsive-grid-2" style="gap: 12px;">
                             <div>
                                 <label style="display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary); font-weight: 500;">Date</label>
                                 <input type="date" @bind="collectionDateOnly" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 10px 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
@@ -460,13 +460,21 @@ else
             paymentModel.PaymentMethodId = defaultMethod.Id;
         }
         
-        if (customer != null && customer.CurrentBalance != 0)
+        if (customer != null && customer.CurrentBalance > 0)
         {
             initialPrefilledBalance = customer.CurrentBalance;
-            if (customer.CurrentPackage != null && customer.CurrentBalance == customer.CurrentPackage.MonthlyPrice)
+            if (customer.CurrentPackage != null)
             {
-                paymentModel.PackageCharges = customer.CurrentBalance;
-                paymentModel.OtherCharges = 0;
+                if (customer.CurrentBalance >= customer.CurrentPackage.MonthlyPrice)
+                {
+                    paymentModel.PackageCharges = customer.CurrentPackage.MonthlyPrice;
+                    paymentModel.OtherCharges = customer.CurrentBalance - customer.CurrentPackage.MonthlyPrice;
+                }
+                else
+                {
+                    paymentModel.PackageCharges = customer.CurrentBalance;
+                    paymentModel.OtherCharges = 0;
+                }
             }
             else
             {
@@ -603,13 +611,23 @@ else
         if (customer != null && customer.CurrentBalance > 0)
         {
             initialPrefilledBalance = customer.CurrentBalance;
-            if (customer.CurrentPackage != null && customer.CurrentBalance >= customer.CurrentPackage.MonthlyPrice)
+            if (customer.CurrentPackage != null)
             {
-                paymentModel.PackageCharges = customer.CurrentPackage.MonthlyPrice;
+                if (customer.CurrentBalance >= customer.CurrentPackage.MonthlyPrice)
+                {
+                    paymentModel.PackageCharges = customer.CurrentPackage.MonthlyPrice;
+                    paymentModel.OtherCharges = customer.CurrentBalance - customer.CurrentPackage.MonthlyPrice;
+                }
+                else
+                {
+                    paymentModel.PackageCharges = customer.CurrentBalance;
+                    paymentModel.OtherCharges = 0;
+                }
             }
             else
             {
-                paymentModel.PackageCharges = customer.CurrentBalance;
+                paymentModel.PackageCharges = 0;
+                paymentModel.OtherCharges = customer.CurrentBalance;
             }
             paymentModel.AmountCollected = 0;
         }

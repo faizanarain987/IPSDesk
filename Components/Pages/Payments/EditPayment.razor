@@ -59,7 +59,7 @@
                 <div style="margin-bottom: 24px; border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px; background: var(--bg-secondary);">
                     <label style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 12px; display: block;">Items Charged</label>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="responsive-grid-2" style="gap: 16px;">
                         <div>
                             <label style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary);">Package Charges</label>
                             <InputNumber @bind-Value="editPackageCharges" class="form-control" style="width: 100%; padding: 10px; font-size: 0.95rem; border-radius: 8px;" />
@@ -87,7 +87,7 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                <div class="responsive-grid-2" style="margin-bottom: 24px; gap: 16px;">
                     <div>
                         <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Discount (Rs.)</label>
                         <InputNumber @bind-Value="editDiscount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
@@ -120,7 +120,7 @@
                 
                 <div style="margin-bottom: 32px;">
                     <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Payment Date</label>
-                    <InputDate @bind-Value="editDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                    <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="editDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
                 </div>
 
                 <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px 0 rgba(99, 102, 241, 0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 14px 0 rgba(99, 102, 241, 0.4)';">

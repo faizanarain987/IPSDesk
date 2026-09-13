@@ -305,12 +305,8 @@
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateTask;
-        if (!authState.User.IsInRole("Admin"))
-        {
-            NavManager.NavigateTo("/customers");
-            return;
-        }
         
+
         var now = DateTime.Now;
         string currentMonth = now.ToString("MMMM yyyy");
         string lastMonth = now.AddMonths(-1).ToString("MMMM yyyy");

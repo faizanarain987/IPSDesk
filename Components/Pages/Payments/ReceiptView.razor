@@ -124,6 +124,10 @@ else
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 12px; color: #0f172a; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">Receipt Breakdown</div>
                 
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <div style="color: #64748b;">Previous Balance</div>
+                    <div style="font-weight: bold; color: #334155;">Rs. @payment.OtherCharges.ToString("N0")</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
                     <div style="color: #64748b;">Package Charges</div>
                     <div style="font-weight: bold; color: #334155;">Rs. @payment.PackageCharges.ToString("N0")</div>
                 </div>
@@ -142,10 +146,6 @@ else
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
                     <div style="color: #64748b;">Complain Charges</div>
                     <div style="font-weight: bold; color: #334155;">Rs. @payment.ComplainCharges.ToString("N0")</div>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
-                    <div style="color: #64748b;">Other Charges</div>
-                    <div style="font-weight: bold; color: #334155;">Rs. @payment.OtherCharges.ToString("N0")</div>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">
                     <div style="color: #64748b;">Total Charges</div>
@@ -250,12 +250,13 @@ else
             .Take(2)
             .ToListAsync();
             
-        var ledgers = await DbContext.CustomerLedgers
-            .Where(l => l.CustomerId == payment.CustomerId && l.TransactionDate <= payment.PaymentDate)
-            .ToListAsync();
-            
-        receiptFinalBalance = ledgers.Sum(l => l.Debit - l.Credit);
-        displayPrevBalance = receiptFinalBalance - payment.TotalCharge + payment.Discount + payment.AmountCollected;
+        // Calculate the final balance mathematically based on the payment record
+        // In this system, TotalCharge includes OtherCharges (which is the previous balance).
+        // Therefore, TotalCharge - Discount represents the total debt before payment.
+        // Subtracting AmountCollected gives the exact final balance.
+        receiptFinalBalance = payment.TotalCharge - payment.Discount - payment.AmountCollected;
+        
+        displayPrevBalance = payment.OtherCharges;
     }
     
     private async Task DownloadPdf()

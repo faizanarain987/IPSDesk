@@ -19,20 +19,48 @@
     </div>
 </div>
 
-<div class="glass-panel" style="margin-bottom: 24px;">
+<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 100; overflow: visible;">
     <div class="responsive-flex" style="display: flex; gap: 16px; flex-wrap: wrap;">
         <div style="flex: 1; min-width: 200px;">
             <label style="display: block; margin-bottom: 8px; font-weight: 600;">Select Employee</label>
-            <select class="form-control" style="padding: 10px 12px; font-size: 1rem; border-radius: 8px; height: 46px;" @bind="selectedEmployeeId">
-                <option value="">-- All Employees --</option>
-                @if (employees != null)
+            <div style="position: relative;" tabindex="0" @onblur="() => { _ = HideDropdown(); }">
+                <div class="form-control" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-size: 1rem; border-radius: 8px; height: 46px; cursor: pointer; background: var(--bg-secondary);" @onclick="ToggleDropdown">
+                    <span style="color: @(string.IsNullOrEmpty(selectedEmployeeId) ? "var(--text-secondary)" : "var(--text-primary)"); font-weight: 500;">
+                        @(string.IsNullOrEmpty(selectedEmployeeId) ? "-- All Employees --" : employees?.FirstOrDefault(e => e.Id == selectedEmployeeId)?.FullName ?? "-- All Employees --")
+                    </span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s; transform: @(isDropdownOpen ? "rotate(180deg)" : "rotate(0deg)")"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+                
+                @if (isDropdownOpen)
                 {
-                    @foreach (var emp in employees)
-                    {
-                        <option value="@emp.Id">@emp.FullName</option>
-                    }
+                    <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-glass); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50; max-height: 250px; overflow-y: auto;">
+                        <div class="custom-dropdown-item @(string.IsNullOrEmpty(selectedEmployeeId) ? "active" : "")" @onmousedown='() => SelectEmployee("")'>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--border-glass); display: flex; align-items: center; justify-content: center; color: #4B5563;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                </div>
+                                <span>-- All Employees --</span>
+                            </div>
+                            @if (string.IsNullOrEmpty(selectedEmployeeId)) { <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> }
+                        </div>
+                        @if (employees != null)
+                        {
+                            @foreach (var emp in employees)
+                            {
+                                <div class="custom-dropdown-item @(selectedEmployeeId == emp.Id ? "active" : "")" @onmousedown='() => SelectEmployee(emp.Id)'>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-primary); font-weight: 600; font-size: 0.7rem;">
+                                            @(emp.FullName?.Substring(0, 1).ToUpper() ?? "E")
+                                        </div>
+                                        <span>@emp.FullName</span>
+                                    </div>
+                                    @if (selectedEmployeeId == emp.Id) { <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> }
+                                </div>
+                            }
+                        }
+                    </div>
                 }
-            </select>
+            </div>
         </div>
         <div style="flex: 1; min-width: 150px;">
             <label style="display: block; margin-bottom: 8px; font-weight: 600;">From Date</label>
@@ -42,9 +70,9 @@
             <label style="display: block; margin-bottom: 8px; font-weight: 600;">To Date</label>
             <input type="date" class="form-control" style="padding: 10px 12px; font-size: 1rem; border-radius: 8px; height: 46px;" @bind="endDate" />
         </div>
-        <div>
+        <div style="flex: 1; min-width: 150px;">
             <label style="display: block; margin-bottom: 8px; visibility: hidden;">Action</label>
-            <button class="btn-primary" style="padding: 0 24px; font-weight: 600; font-size: 1rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);" @onclick="GenerateReport">
+            <button class="btn-primary @(isLoading ? "is-loading" : "")" disabled="@isLoading" style="width: 100%; padding: 0 24px; font-weight: 600; font-size: 1rem; border-radius: 8px; height: 46px; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);" @onclick="GenerateReport">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
                 Generate Report
             </button>
@@ -158,12 +186,34 @@
     private bool hasSearched = false;
     private decimal totalCollection = 0;
     private List<Payment>? filteredPayments;
+    private bool isLoading = false;
     
     // Pagination
     private int currentPage = 1;
     private int pageSize = 10;
     private int totalPages => filteredPayments == null || !filteredPayments.Any() ? 1 : (int)Math.Ceiling((double)filteredPayments.Count() / pageSize);
     private IEnumerable<Payment> displayedPayments => filteredPayments?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<Payment>();
+
+    // Dropdown Logic
+    private bool isDropdownOpen = false;
+
+    private void ToggleDropdown()
+    {
+        isDropdownOpen = !isDropdownOpen;
+    }
+
+    private async Task HideDropdown()
+    {
+        await Task.Delay(150);
+        isDropdownOpen = false;
+        StateHasChanged();
+    }
+
+    private void SelectEmployee(string id)
+    {
+        selectedEmployeeId = id;
+        isDropdownOpen = false;
+    }
 
     private void ResetPage()
     {
@@ -186,6 +236,12 @@
 
     private async Task GenerateReport()
     {
+        isLoading = true;
+        StateHasChanged();
+        
+        // Simulate network delay for effect
+        await Task.Delay(400);
+
         // Adjust endDate to include the entire day if it's matching the exact date (00:00:00)
         var endDateIncluded = endDate.Date.AddDays(1).AddTicks(-1);
 
@@ -201,9 +257,29 @@
         filteredPayments = await query.OrderByDescending(p => p.PaymentDate).ToListAsync();
         totalCollection = filteredPayments.Sum(p => p.AmountCollected);
         hasSearched = true;
+        
+        isLoading = false;
     }
 }
 
-
-
-
+<style>
+    .custom-dropdown-item {
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        transition: background-color 0.15s, color 0.15s;
+    }
+    .custom-dropdown-item:hover {
+        background-color: var(--bg-secondary);
+        filter: brightness(0.95);
+    }
+    .custom-dropdown-item.active {
+        background-color: rgba(59, 130, 246, 0.05);
+        color: var(--accent-primary);
+    }
+</style>

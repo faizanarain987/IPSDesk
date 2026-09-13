@@ -43,7 +43,7 @@
         <EditForm Model="@userModel" OnValidSubmit="SaveUser" OnInvalidSubmit="HandleInvalidSubmit" style="display: flex; flex-direction: column;">
             <DataAnnotationsValidator />
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+            <div class="responsive-grid-2" style="margin-bottom: 24px;">
                 <div>
                     <label style="display: block; font-weight: 600; margin-bottom: 8px;">Full Name <span style="color: #ef4444;">*</span></label>
                     <InputText @bind-Value="userModel.FullName" class="form-control" placeholder="e.g. Ali Khan" style="padding: 12px; font-size: 1.05rem; border-radius: 8px;" />
@@ -71,7 +71,7 @@
                 <InputTextArea @bind-Value="userModel.HomeAddress" class="form-control" placeholder="Enter complete home address" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; resize: vertical; min-height: 80px;" />
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+            <div class="responsive-grid-2" style="margin-bottom: 32px;">
                 <div style="background: var(--bg-secondary); border: 1px solid var(--border-glass); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                     <label style="display: block; font-weight: 600; margin-bottom: 12px;">Role <span style="color: #ef4444;">*</span></label>
                     <InputSelect @bind-Value="userModel.Role" class="form-control" style="padding: 12px; font-size: 1.05rem; border-radius: 8px; background-color: var(--bg-secondary);">

@@ -53,15 +53,30 @@
             }
         });
         
+        // Prevent scroll wheel and arrow keys from changing number input values globally
+        document.addEventListener("wheel", function(event) {
+            if (document.activeElement && document.activeElement.type === "number") {
+                document.activeElement.blur();
+            }
+        }, { passive: true });
+
+        document.addEventListener("keydown", function(event) {
+            if (document.activeElement && document.activeElement.type === "number" && 
+                (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+                event.preventDefault();
+            }
+        });
+        
         window.downloadReceiptPdf = function (elementId, filename) {
             var element = document.getElementById(elementId);
             if (!element) return;
             var opt = {
-                margin:       0.5,
+                margin:       [0.5, 0.5, 0.1, 0.5],
                 filename:     filename,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: 'avoid-all' }
             };
             html2pdf().set(opt).from(element).save();
         };

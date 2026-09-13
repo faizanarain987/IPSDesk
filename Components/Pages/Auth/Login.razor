@@ -259,7 +259,44 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            NavigationManager.NavigateTo("/"); // Redirect to dashboard
+            
+            if (user != null)
+            {
+                var principal = await SignInManager.CreateUserPrincipalAsync(user);
+                
+                if (principal.HasClaim("Permission", AppPermissions.Dashboard.View))
+                {
+                    NavigationManager.NavigateTo("/");
+                }
+                else if (principal.HasClaim("Permission", AppPermissions.Customers.View))
+                {
+                    NavigationManager.NavigateTo("/customers");
+                }
+                else if (principal.HasClaim("Permission", AppPermissions.Payments.View) || principal.HasClaim("Permission", AppPermissions.Payments.ViewHistory))
+                {
+                    NavigationManager.NavigateTo("/payments");
+                }
+                else if (principal.HasClaim("Permission", AppPermissions.Packages.View))
+                {
+                    NavigationManager.NavigateTo("/packages");
+                }
+                else if (principal.HasClaim("Permission", AppPermissions.Reports.View))
+                {
+                    NavigationManager.NavigateTo("/reports");
+                }
+                else if (principal.HasClaim("Permission", AppPermissions.Users.View))
+                {
+                    NavigationManager.NavigateTo("/employees");
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("/"); // Fallback
+                }
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/");
+            }
         }
         else if (result.IsLockedOut)
         {
