@@ -1,0 +1,452 @@
+@page "/payments/handover"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = IPSDesk.Models.AppPermissions.CashHandover.View)]
+
+@using IPSDesk.Data
+@using IPSDesk.Models
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApplicationDbContext DbContext
+@inject IPSDesk.Services.ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Cash Handover - Diamond Net</PageTitle>
+
+<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+    <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
+            </div>
+            <div>
+                <h1 style="margin: 0; font-weight: 700;">Cash Handover</h1>
+                <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 0.95rem;">Record and manage cash handed over to the owner.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-panel" style="margin-bottom: 32px; padding: 32px;">
+    <div class="responsive-grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start;">
+        
+        <!-- Filter & Total Collection -->
+        <div>
+            <h3 style="margin-top: 0; margin-bottom: 16px; font-weight: 700; color: var(--text-primary);">Total Collection Filter</h3>
+            
+            <div class="responsive-flex" style="display: flex; gap: 16px; margin-bottom: 24px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control" @bind="FilterStartDate" @bind:after="CalculateTotal" />
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control" @bind="FilterEndDate" @bind:after="CalculateTotal" />
+                </div>
+            </div>
+
+            <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); padding: 24px; border-radius: 16px; text-align: center;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(59,130,246,0.3); padding-bottom: 12px; margin-bottom: 12px;">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 600;">Previous Balance</span>
+                    <span style="font-weight: 700; color: var(--accent-danger);">Rs. @PreviousBalance.ToString("N0")</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(59,130,246,0.3); padding-bottom: 12px; margin-bottom: 12px;">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 600;">New Collection</span>
+                    <span style="font-weight: 700; color: var(--text-primary);">Rs. @TotalCollected.ToString("N0")</span>
+                </div>
+                
+                <span style="color: var(--accent-primary); font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Total Due</span>
+                <div style="font-size: 2.5rem; font-weight: 800; color: var(--text-primary); margin-top: 8px;">
+                    <span style="font-size: 1.25rem; opacity: 0.7;">Rs.</span> @TotalDue.ToString("N0")
+                </div>
+            </div>
+        </div>
+
+        <!-- Handover Form -->
+        <AuthorizeView Policy="@IPSDesk.Models.AppPermissions.CashHandover.Add">
+            <Authorized Context="authContext">
+                <div style="background: var(--bg-primary); padding: 24px; border-radius: 16px; border: 1px solid var(--border-glass);">
+            <h3 style="margin-top: 0; margin-bottom: 16px; font-weight: 700; color: var(--text-primary);">Record Handover</h3>
+            
+            <EditForm Model="NewHandover" OnValidSubmit="SaveHandover">
+                <DataAnnotationsValidator />
+                
+                <div class="form-group" style="position: relative !important; z-index: @(isFormDropdownOpen ? 9999 : 1) !important;">
+                    <label class="form-label">Employee</label>
+                    <div style="position: relative;" @onfocusout="HideFormDropdown" tabindex="0">
+                        <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-primary); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-glass); cursor: pointer;" @onclick="ToggleFormDropdown">
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    @if (!string.IsNullOrEmpty(NewHandover.EmployeeId))
+                                    {
+                                        var empName = GetEmployeeName(NewHandover.EmployeeId);
+                                        <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-primary); font-weight: 600; font-size: 0.7rem;">
+                                            @(empName.Length > 0 ? empName.Substring(0, 1).ToUpper() : "?")
+                                        </div>
+                                        <span style="font-weight: 500;">@empName</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: var(--text-secondary);">Select Employee...</span>
+                                    }
+                                </div>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s; color: var(--text-secondary); transform: @(isFormDropdownOpen ? "rotate(180deg)" : "rotate(0deg)")"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
+                        @if (isFormDropdownOpen)
+                        {
+                            <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #ffffff; border-radius: 8px; border: 1px solid var(--border-glass); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); z-index: 999999; overflow: hidden; animation: fadeIn 0.15s ease-out;">
+                                @foreach (var emp in Employees)
+                                {
+                                    <div class="custom-dropdown-item @(NewHandover.EmployeeId == emp.Id ? "active" : "")" @onmousedown='() => SelectFormEmployee(emp.Id)'>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-primary); font-weight: 600; font-size: 0.7rem;">
+                                                @(emp.FullName.Length > 0 ? emp.FullName.Substring(0, 1).ToUpper() : "?")
+                                            </div>
+                                            <span>@emp.FullName</span>
+                                        </div>
+                                        @if (NewHandover.EmployeeId == emp.Id) { <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <ValidationMessage For="@(() => NewHandover.EmployeeId)" />
+                </div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label class="form-label">Amount Handed Over (Rs.)</label>
+                    <InputNumber @bind-Value="NewHandover.Amount" class="form-control" placeholder="Enter amount" />
+                    <ValidationMessage For="@(() => NewHandover.Amount)" />
+                </div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label class="form-label">Handover Date</label>
+                    <InputDate @bind-Value="NewHandover.PaymentDate" class="form-control" />
+                </div>
+
+                <div class="form-group" style="margin-top: 16px;">
+                    <label class="form-label">Notes (Optional)</label>
+                    <InputTextArea @bind-Value="NewHandover.Notes" class="form-control" rows="2" placeholder="Any additional notes..." />
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 24px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save Handover
+                </button>
+            </EditForm>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; position: relative; z-index: @(isFilterDropdownOpen ? 9999 : 1);">
+    <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0; color: var(--text-primary);">Handover History</h2>
+    <div style="position: relative;" @onfocusout="HideFilterDropdown" tabindex="0">
+        <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-secondary); padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;" @onclick="ToggleFilterDropdown">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">PROCESSED BY</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; min-width: 140px; padding: 4px 8px; background-color: var(--bg-secondary); border-radius: 6px; font-weight: 500; color: var(--text-primary); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                <span>@GetEmployeeName(HistoryFilterEmployeeId)</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s; transform: @(isFilterDropdownOpen ? "rotate(180deg)" : "rotate(0deg)")"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+        </div>
+        @if (isFilterDropdownOpen)
+        {
+            <div style="position: absolute; top: 100%; right: 0; margin-top: 8px; width: 220px; background: #ffffff; border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); z-index: 999999; overflow: hidden; animation: fadeIn 0.15s ease-out;">
+                <div class="custom-dropdown-item @(string.IsNullOrEmpty(HistoryFilterEmployeeId) ? "active" : "")" @onmousedown='() => SelectHistoryEmployee("")'>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--border-glass); display: flex; align-items: center; justify-content: center; color: #4B5563;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        </div>
+                        <span>All Staff</span>
+                    </div>
+                    @if (string.IsNullOrEmpty(HistoryFilterEmployeeId)) { <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> }
+                </div>
+                @foreach (var emp in Employees)
+                {
+                    <div class="custom-dropdown-item @(HistoryFilterEmployeeId == emp.Id ? "active" : "")" @onmousedown='() => SelectHistoryEmployee(emp.Id)'>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--accent-primary); font-weight: 600; font-size: 0.7rem;">
+                                @(emp.FullName.Length > 0 ? emp.FullName.Substring(0, 1).ToUpper() : "?")
+                            </div>
+                            <span>@emp.FullName</span>
+                        </div>
+                        @if (HistoryFilterEmployeeId == emp.Id) { <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="glass-panel" style="padding: 0; overflow: hidden;">
+    @if (IsLoadingHistory)
+    {
+        <div style="padding: 40px; text-align: center;">
+            <div class="spinner" style="width: 32px; height: 32px; margin: 0 auto 16px auto;"></div>
+            <span style="color: var(--text-secondary);">Loading history...</span>
+        </div>
+    }
+    else if (!HandoverHistory.Any())
+    {
+        <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px; opacity: 0.5;"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M10 4v4"></path><path d="M2 8h20"></path><path d="M6 4v4"></path></svg>
+            <p>No cash handovers found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Employee</th>
+                        <th>Amount</th>
+                        <th>Related Date Range</th>
+                        <th>Calculated Collection</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in HandoverHistory)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight: 500;">@item.PaymentDate.ToString("MMM dd, yyyy")</div>
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--accent-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">
+                                        @((item.Employee?.FullName?.Length > 0 ? item.Employee.FullName.Substring(0, 1).ToUpper() : "?"))
+                                    </div>
+                                    @(item.Employee?.FullName ?? item.CreatedByName)
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 700; color: var(--accent-success);">Rs. @item.Amount.ToString("N0")</div>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    @item.DateRangeStart.ToString("MMM dd") - @item.DateRangeEnd.ToString("MMM dd, yyyy")
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-weight: 500;">Rs. @item.TotalCollectionAtTime.ToString("N0")</span>
+                                @if(item.PreviousBalance > 0)
+                                {
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">+ Bal: Rs. @item.PreviousBalance.ToString("N0")</div>
+                                }
+                            </td>
+                            <td>
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">@(string.IsNullOrEmpty(item.Notes) ? "-" : item.Notes)</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private DateTime FilterStartDate { get; set; } = DateTime.Today.AddDays(-7);
+    private DateTime FilterEndDate { get; set; } = DateTime.Today;
+    private decimal TotalCollected { get; set; } = 0;
+    private decimal PreviousBalance { get; set; } = 0;
+    private decimal TotalDue => TotalCollected + PreviousBalance;
+    
+    private OwnerPayment NewHandover { get; set; } = new OwnerPayment { PaymentDate = DateTime.Today };
+    
+    private List<OwnerPayment> HandoverHistory { get; set; } = new();
+    private bool IsLoadingHistory { get; set; } = true;
+    private string HistoryFilterEmployeeId { get; set; } = string.Empty;
+
+    private List<ApplicationUser> Employees { get; set; } = new();
+
+    private bool isFilterDropdownOpen = false;
+    private bool isFormDropdownOpen = false;
+
+    private void ToggleFilterDropdown() => isFilterDropdownOpen = !isFilterDropdownOpen;
+    private void HideFilterDropdown() => isFilterDropdownOpen = false;
+
+    private async Task SelectHistoryEmployee(string empId)
+    {
+        HistoryFilterEmployeeId = empId;
+        isFilterDropdownOpen = false;
+        await LoadHistory();
+    }
+
+    private string GetEmployeeName(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return "All Staff";
+        return Employees.FirstOrDefault(e => e.Id == id)?.FullName ?? "Unknown";
+    }
+
+    private void ToggleFormDropdown() => isFormDropdownOpen = !isFormDropdownOpen;
+    private void HideFormDropdown() => isFormDropdownOpen = false;
+
+    private async Task SelectFormEmployee(string empId)
+    {
+        NewHandover.EmployeeId = empId;
+        isFormDropdownOpen = false;
+        await LoadEmployeeDefaults();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        bool isAdmin = user.IsInRole("Admin");
+        string? userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (!isAdmin && !string.IsNullOrEmpty(userId))
+        {
+            HistoryFilterEmployeeId = userId;
+            Employees = await DbContext.Users.Where(u => u.IsActive && u.Id == userId).ToListAsync();
+        }
+        else
+        {
+            Employees = await DbContext.Users.Where(u => u.IsActive).ToListAsync();
+        }
+
+        if (Employees.Any())
+        {
+            NewHandover.EmployeeId = Employees.First().Id;
+            await LoadEmployeeDefaults();
+        }
+        else
+        {
+            await CalculateTotal();
+        }
+
+        await LoadHistory();
+    }
+
+    private async Task LoadEmployeeDefaults()
+    {
+        if (string.IsNullOrEmpty(NewHandover.EmployeeId)) return;
+
+        var prev = await DbContext.OwnerPayments
+            .Where(o => o.EmployeeId == NewHandover.EmployeeId)
+            .OrderByDescending(o => o.DateRangeEnd)
+            .FirstOrDefaultAsync();
+
+        if (prev != null)
+        {
+            FilterStartDate = prev.DateRangeEnd.AddDays(1);
+            PreviousBalance = prev.RemainingBalance;
+        }
+        else
+        {
+            FilterStartDate = DateTime.Today.AddDays(-7);
+            PreviousBalance = 0;
+        }
+        FilterEndDate = DateTime.Today;
+
+        if (FilterEndDate < FilterStartDate) FilterEndDate = FilterStartDate;
+
+        await CalculateTotal();
+    }
+
+    private async Task CalculateTotal()
+    {
+        // Calculate all collected payments in the given date range (inclusive).
+        var start = FilterStartDate.Date;
+        var end = FilterEndDate.Date.AddDays(1).AddTicks(-1);
+
+        TotalCollected = await DbContext.Payments
+            .Where(p => p.PaymentDate >= start && p.PaymentDate <= end && p.CreatedById == NewHandover.EmployeeId)
+            .SumAsync(p => p.AmountCollected);
+    }
+
+    private async Task LoadHistory()
+    {
+        IsLoadingHistory = true;
+        
+        var query = DbContext.OwnerPayments
+            .Include(o => o.Employee)
+            .AsQueryable();
+            
+        if (!string.IsNullOrEmpty(HistoryFilterEmployeeId))
+        {
+            query = query.Where(o => o.EmployeeId == HistoryFilterEmployeeId);
+        }
+        
+        HandoverHistory = await query
+            .OrderByDescending(o => o.PaymentDate)
+            .ThenByDescending(o => o.CreatedAt)
+            .Take(100)
+            .ToListAsync();
+            
+        IsLoadingHistory = false;
+    }
+
+    private async Task SaveHandover()
+    {
+        if (NewHandover.Amount <= 0)
+        {
+            ToastService.ShowError("Amount must be greater than zero.");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(NewHandover.EmployeeId))
+        {
+            ToastService.ShowError("Please select an employee.");
+            return;
+        }
+
+        var startFilter = FilterStartDate.Date;
+        var endFilter = FilterEndDate.Date;
+
+        bool overlap = await DbContext.OwnerPayments.AnyAsync(o => 
+            o.EmployeeId == NewHandover.EmployeeId &&
+            o.DateRangeStart.Date <= endFilter && 
+            o.DateRangeEnd.Date >= startFilter);
+
+        if (overlap)
+        {
+            ToastService.ShowError("This employee already has a handover recorded that overlaps with the selected date range.");
+            return;
+        }
+
+        // Attach current context values
+        NewHandover.DateRangeStart = startFilter;
+        NewHandover.DateRangeEnd = endFilter;
+        NewHandover.TotalCollectionAtTime = TotalCollected;
+        NewHandover.PreviousBalance = PreviousBalance;
+        NewHandover.RemainingBalance = TotalDue - NewHandover.Amount;
+
+        DbContext.OwnerPayments.Add(NewHandover);
+        await DbContext.SaveChangesAsync();
+
+        ToastService.ShowSuccess($"Successfully recorded Rs. {NewHandover.Amount.ToString("N0")} handover.");
+        
+        // Reset form
+        NewHandover = new OwnerPayment { PaymentDate = DateTime.Today, EmployeeId = Employees.FirstOrDefault()?.Id ?? "" };
+        
+        await LoadHistory();
+        await LoadEmployeeDefaults();
+    }
+}
+
+<style>
+    .custom-dropdown-item {
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        transition: background-color 0.15s, color 0.15s;
+    }
+    .custom-dropdown-item:hover {
+        background-color: var(--bg-secondary);
+    }
+    .custom-dropdown-item.active {
+        background-color: rgba(99, 102, 241, 0.05);
+        color: var(--accent-primary);
+    }
+</style>

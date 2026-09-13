@@ -294,12 +294,26 @@
         await LoadPayments();
     }
 
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
     private async Task LoadPayments()
     {
-        allPayments = await DbContext.Payments
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        bool isAdmin = user.IsInRole("Admin");
+        string? userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var query = DbContext.Payments
             .Include(p => p.Customer)
             .Include(p => p.PaymentMethod)
-            .Where(p => !p.IsDeleted)
+            .Where(p => !p.IsDeleted);
+
+        if (!isAdmin && !string.IsNullOrEmpty(userId))
+        {
+            query = query.Where(p => p.CreatedById == userId);
+        }
+
+        allPayments = await query
             .OrderByDescending(p => p.PaymentDate)
             .Take(500)
             .ToListAsync();
@@ -311,7 +325,12 @@
             .Distinct()
             .OrderBy(e => e)
             .ToList();
-            
+
+        if (!isAdmin && employees.Any())
+        {
+            _selectedEmployee = employees.First();
+        }
+
         ApplyFilters();
     }
     

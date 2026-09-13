@@ -279,12 +279,26 @@
         await LoadRenewals();
     }
     
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
     private async Task LoadRenewals()
     {
-        allRenewals = await DbContext.MonthlyPackageHistories
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        bool isAdmin = user.IsInRole("Admin");
+        string? userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        var query = DbContext.MonthlyPackageHistories
             .Include(h => h.Customer)
             .Include(h => h.Package)
-            .Where(h => !h.IsDeleted)
+            .Where(h => !h.IsDeleted);
+
+        if (!isAdmin && !string.IsNullOrEmpty(userId))
+        {
+            query = query.Where(h => h.CreatedById == userId);
+        }
+
+        allRenewals = await query
             .OrderByDescending(h => h.RenewalDate)
             .ThenByDescending(h => h.CreatedAt)
             .Take(500)
@@ -296,7 +310,12 @@
             .Distinct()
             .OrderBy(e => e)
             .ToList();
-            
+
+        if (!isAdmin && employees.Any())
+        {
+            _selectedEmployee = employees.First();
+        }
+
         ApplyFilters();
     }
     

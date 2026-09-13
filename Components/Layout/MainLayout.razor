@@ -15,9 +15,11 @@
 <div class="app-container">
     <div class="sidebar-overlay @(isSidebarOpen ? "open" : "")" @onclick="ToggleSidebar"></div>
     <div class="sidebar @(isSidebarOpen ? "open" : "")">
-        <a href="/" class="sidebar-brand" style="display: flex; align-items: center; gap: 12px; padding: 12px 24px; text-decoration: none; color: inherit; cursor: pointer;">
-            <img src="/images/isp-logo.jpg" alt="ISP Logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />
-            <span style="font-weight: 700; font-size: 1.25rem;">Diamond Net</span>
+        <a href="/" class="sidebar-brand" style="display: flex; align-items: center; gap: 12px; padding: 12px 24px; text-decoration: none; color: inherit; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+            <div style="background: white; padding: 4px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;">
+                <img src="/images/isp-logo.jpg" alt="ISP Logo" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;" />
+            </div>
+            <span style="font-weight: 800; font-size: 1.25rem; background: linear-gradient(90deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">@companyName</span>
         </a>
         <NavMenu OnNavLinkClicked="CloseSidebar" />
     </div>
@@ -32,8 +34,10 @@
                     <GlobalSearchBar />
                 </div>
             </div>
-            
-            <UserProfileDropdown />
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <ThemeToggle />
+                <UserProfileDropdown />
+            </div>
         </header>
 
         <article class="page-content">
@@ -50,6 +54,7 @@
 
 @code {
     private bool isSidebarOpen = false;
+    private string companyName = "IPS Desk";
 
     private void ToggleSidebar()
     {
@@ -63,6 +68,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var scope = ServiceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IPSDesk.Data.ApplicationDbContext>();
+        var settings = dbContext.CompanySettings.FirstOrDefault();
+        if (settings != null && !string.IsNullOrEmpty(settings.CompanyName))
+        {
+            companyName = settings.CompanyName;
+        }
+
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
@@ -73,8 +86,8 @@
             
             if (!string.IsNullOrEmpty(userId))
             {
-                using var scope = ServiceProvider.CreateScope();
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                using var userScope = ServiceProvider.CreateScope();
+                var userManager = userScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                 var appUser = await userManager.FindByIdAsync(userId);
                 CurrentUser.UserName = appUser?.FullName ?? user.Identity.Name;
                 if (appUser != null)

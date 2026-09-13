@@ -16,8 +16,8 @@
 
     @if (isDropdownOpen)
     {
-        <div class="dropdown-backdrop" @onclick="ToggleDropdown"></div>
-        <div class="profile-dropdown-menu">
+        <div class="dropdown-backdrop" @onclick="CloseDropdown" @onclick:stopPropagation="true"></div>
+        <div class="profile-dropdown-menu" @onclick:stopPropagation="true">
             <div class="profile-dropdown-header">
                 <div class="profile-name">@fullName</div>
                 <div class="profile-email">@email</div>
@@ -239,6 +239,11 @@
     private void ToggleDropdown()
     {
         isDropdownOpen = !isDropdownOpen;
+    }
+
+    private void CloseDropdown()
+    {
+        isDropdownOpen = false;
     }
 
     private void NavigateToChangePassword()

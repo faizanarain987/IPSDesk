@@ -20,10 +20,10 @@ else
         <!-- Subtle background accent -->
         <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%); opacity: 0.05; border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;"></div>
 
-        <div style="display: flex; align-items: flex-start; gap: 24px;">
+        <div class="responsive-flex" style="display: flex; align-items: flex-start; gap: 24px;">
             <!-- Back Button & Avatar -->
             <div style="display: flex; align-items: center; gap: 16px;">
-                <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/employees")' title="Back to Employees">
+                <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px; flex-shrink: 0;" @onclick='() => NavManager.NavigateTo("/employees")' title="Back to Employees">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 </button>
                 <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), #8B5CF6); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: 600; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);">
@@ -32,11 +32,11 @@ else
             </div>
 
             <!-- Profile Info -->
-            <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <h1 style="margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px;">@employee.FullName</h1>
-                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 24px;">
+            <div style="flex: 1; width: 100%;">
+                <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="width: 100%;">
+                        <h1 style="margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; word-break: break-word;">@employee.FullName</h1>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 24px; flex-wrap: wrap;">
                             <div style="display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; background: @(employee.IsActive ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"); color: @(employee.IsActive ? "var(--accent-success)" : "var(--accent-danger)"); font-weight: 600; font-size: 0.85rem;">
                                 <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px;"></span>
                                 @(employee.IsActive ? "Active Employee" : "Inactive")
@@ -46,7 +46,7 @@ else
                             </div>
                         </div>
                     </div>
-                    <div style="background: rgba(0,0,0,0.02); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-glass); min-width: 200px;">
+                    <div style="background: rgba(0,0,0,0.02); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-glass); min-width: 200px; width: 100%;">
                         <span style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 4px;">Total Collections</span>
                         <div style="display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; font-weight: 700; font-size: 1.5rem; color: var(--accent-primary);">
                             <span style="font-size: 1rem; color: var(--text-secondary);">Rs.</span>

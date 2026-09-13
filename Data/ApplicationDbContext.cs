@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CompanySettings> CompanySettings { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<CustomerLedger> CustomerLedgers { get; set; }
+    public DbSet<OwnerPayment> OwnerPayments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -40,6 +41,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             
         builder.Entity<CustomerLedger>()
             .HasQueryFilter(l => !l.IsDeleted);
+
+        builder.Entity<OwnerPayment>()
+            .HasQueryFilter(o => !o.IsDeleted);
 
         builder.Entity<PaymentMethod>()
             .HasQueryFilter(p => !p.IsDeleted);

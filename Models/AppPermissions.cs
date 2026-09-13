@@ -28,6 +28,12 @@ public static class AppPermissions
         public const string Delete = "Permissions.Payments.Delete";
     }
 
+    public static class CashHandover
+    {
+        public const string View = "Permissions.CashHandover.View";
+        public const string Add = "Permissions.CashHandover.Add";
+    }
+
     public static class Renewals
     {
         public const string ViewHistory = "Permissions.Renewals.ViewHistory";
