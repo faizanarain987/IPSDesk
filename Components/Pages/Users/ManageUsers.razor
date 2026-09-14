@@ -14,7 +14,7 @@
 
 <PageTitle>Employees / Users - Diamond Net</PageTitle>
 
-<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary);">
     <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
@@ -77,7 +77,7 @@
                         <td>@user.PhoneNumber</td>
                         <td>@(string.IsNullOrEmpty(user.Cnic) ? "N/A" : user.Cnic)</td>
                         <td>
-                            <span class="profile-role-badge" style="background-color: @(GetRoleBadgeColor(user.Id)); color: #1E293B; font-weight: 600; font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; display: inline-block;">
+                            <span class="profile-role-badge" style="background-color: @(GetRoleBadgeColor(user.Id)); color: @(GetRoleTextColor(user.Id)); border: 1px solid var(--border-glass); font-weight: 600; font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; display: inline-block;">
                                 @(userRoles.ContainsKey(user.Id) ? userRoles[user.Id] : "Technician")
                             </span>
                         </td>
@@ -224,7 +224,7 @@
                     <div style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500;">New Password <span style="color: red;">*</span></label>
                         <div style="position: relative;">
-                            <InputText @bind-Value="resetPasswordModel.NewPassword" type="@(showNewPassword ? "text" : "password")" class="form-control" placeholder="Enter new password" style="padding-right: 40px; background: #F9FAFB; border: 1px solid #D1D5DB;" />
+                            <InputText @bind-Value="resetPasswordModel.NewPassword" type="@(showNewPassword ? "text" : "password")" class="form-control" placeholder="Enter new password" style="padding-right: 40px;" />
                             <button type="button" @onclick="() => showNewPassword = !showNewPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px; display: flex; align-items: center; justify-content: center;">
                                 @if (showNewPassword)
                                 {
@@ -242,7 +242,7 @@
                     <div>
                         <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500;">Confirm Password <span style="color: red;">*</span></label>
                         <div style="position: relative;">
-                            <InputText @bind-Value="resetPasswordModel.ConfirmPassword" type="@(showConfirmPassword ? "text" : "password")" class="form-control" placeholder="Confirm new password" style="padding-right: 40px; background: #F9FAFB; border: 1px solid #D1D5DB;" />
+                            <InputText @bind-Value="resetPasswordModel.ConfirmPassword" type="@(showConfirmPassword ? "text" : "password")" class="form-control" placeholder="Confirm new password" style="padding-right: 40px;" />
                             <button type="button" @onclick="() => showConfirmPassword = !showConfirmPassword" tabindex="-1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 4px; display: flex; align-items: center; justify-content: center;">
                                 @if (showConfirmPassword)
                                 {
@@ -330,9 +330,20 @@
         var role = userRoles.ContainsKey(userId) ? userRoles[userId] : "Manager";
         return role switch
         {
-            "Admin" => "#D1FAE5",      // Light Green
-            "Manager" => "#DBEAFE",    // Light Blue
-            _ => "#E2E8F0"
+            "Admin" => "rgba(16, 185, 129, 0.1)",
+            "Manager" => "rgba(59, 130, 246, 0.1)",
+            _ => "var(--bg-secondary)"
+        };
+    }
+
+    private string GetRoleTextColor(string userId)
+    {
+        var role = userRoles.ContainsKey(userId) ? userRoles[userId] : "Manager";
+        return role switch
+        {
+            "Admin" => "var(--accent-success)",
+            "Manager" => "var(--accent-primary)",
+            _ => "var(--text-primary)"
         };
     }
 

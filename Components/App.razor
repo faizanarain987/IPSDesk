@@ -91,7 +91,14 @@
                 margin:       [0.5, 0.5, 0.1, 0.5],
                 filename:     filename,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true,
+                    onclone: function(clonedDoc) {
+                        clonedDoc.body.classList.remove('dark-mode');
+                        clonedDoc.documentElement.classList.remove('dark-mode');
+                    }
+                },
                 jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: 'avoid-all' }
             };

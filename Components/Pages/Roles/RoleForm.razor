@@ -11,7 +11,7 @@
 
 <PageTitle>@(string.IsNullOrEmpty(Id) ? "Add Role" : "Edit Role") - Diamond Net</PageTitle>
 
-<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+<div class="glass-panel" style="margin-bottom: 24px; padding: 32px; position: relative; overflow: hidden; border-top: 4px solid var(--accent-primary);">
     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
         <button class="btn-icon" style="color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" @onclick='() => NavManager.NavigateTo("/roles")' title="Back to Roles">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -50,14 +50,14 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px;">
                     @foreach (var group in permissionGroups)
                     {
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
-                            <h4 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                        <div style="background: var(--bg-primary); border: 1px solid var(--border-glass); border-radius: 10px; padding: 20px;">
+                            <h4 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-glass); padding-bottom: 8px;">
                                 @group.ModuleName
                             </h4>
                             <div style="display: flex; flex-direction: column; gap: 12px;">
                                 @foreach (var perm in group.Permissions)
                                 {
-                                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #475569; cursor: pointer; user-select: none;">
+                                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                                         <input type="checkbox" @bind="perm.IsSelected" style="width: 18px; height: 18px; accent-color: var(--accent-primary); cursor: pointer;" />
                                         @perm.Name
                                     </label>

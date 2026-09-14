@@ -99,7 +99,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #3b82f6;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
                 Customers by Package
             </h2>
-            <span style="border: 1px solid var(--border-glass); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: #4b5563; background: #f9fafb;">
+            <span style="border: 1px solid var(--border-glass); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: var(--text-secondary); background: var(--hover-bg, rgba(0,0,0,0.05));">
                 Overall
             </span>
         </div>
@@ -126,7 +126,7 @@
                         var color = GetPackageColor(stat.PackageName, i);
                         var pct = total > 0 ? ((double)stat.Count * 100 / total) : 0;
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.9rem;">
-                            <div style="display: flex; align-items: center; gap: 8px; color: #4b5563;">
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
                                 <div style="width: 12px; height: 12px; border-radius: 50%; background-color: @color;"></div>
                                 @stat.PackageName
                             </div>
@@ -154,7 +154,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #3b82f6;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                 Monthly Revenue Overview
             </h2>
-            <select @onchange="OnRevenueFilterChanged" style="border: 1px solid var(--border-glass); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: #4b5563; background: var(--bg-secondary);">
+            <select @onchange="OnRevenueFilterChanged" style="border: 1px solid var(--border-glass); border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; color: var(--text-secondary); background: var(--bg-secondary);">
                 <option value="1">This Month</option>
                 <option value="3">Last 3 Months</option>
                 <option value="6">Last 6 Months</option>
@@ -236,15 +236,15 @@
                 @foreach (var payment in recentPayments)
                 {
                     <tr style="border-bottom: 1px solid var(--border-glass);">
-                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@payment.Date.ToString("MMM dd, yyyy")</td>
-                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@(payment.ConnectionId ?? "N/A")</td>
-                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@payment.CustomerName</td>
-                        <td style="padding: 16px 24px; font-size: 0.9rem; font-weight: 600; color: #059669;">Rs. @payment.Amount.ToString("N0")</td>
-                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@(payment.PaymentMethod ?? "Unknown")</td>
-                        <td style="padding: 16px 24px; font-size: 0.9rem; color: #4b5563;">@(payment.ProcessedBy ?? "System")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-secondary);">@payment.Date.ToString("MMM dd, yyyy")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-secondary);">@(payment.ConnectionId ?? "N/A")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-primary);">@payment.CustomerName</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; font-weight: 600; color: var(--accent-success);">Rs. @payment.Amount.ToString("N0")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-secondary);">@(payment.PaymentMethod ?? "Unknown")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-secondary);">@(payment.ProcessedBy ?? "System")</td>
                         <td style="padding: 16px 24px; text-align: center;">
-                            <button class="btn-icon" style="color: #3b82f6; background: #eff6ff; border-radius: 6px; padding: 6px;" @onclick='() => NavManager.NavigateTo($"/payments/receipt/{payment.Id}")' title="Download Receipt">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <button class="btn-icon" style="color: var(--accent-primary); background: var(--hover-bg, rgba(59, 130, 246, 0.1)); border-radius: 6px; padding: 6px;" @onclick='() => NavManager.NavigateTo($"/payments/receipt/{payment.Id}")' title="View Receipt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                             </button>
                         </td>
                     </tr>
@@ -270,11 +270,6 @@
             opacity: 1;
             transform: translateY(0);
         }
-    }
-    
-    /* Overall background styling to match the light theme of the screenshot */
-    body {
-        background-color: #f8fafc;
     }
 </style>
 

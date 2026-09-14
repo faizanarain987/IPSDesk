@@ -77,8 +77,8 @@ public class PdfExportService
                 columns.RelativeColumn(2);  // Discount
                 columns.RelativeColumn(2);  // Amount Paid
                 columns.RelativeColumn(2);  // Date
-                columns.RelativeColumn(1);  // Status
-                columns.RelativeColumn(5);  // Comment
+                columns.RelativeColumn(1.5f);  // Status
+                columns.RelativeColumn(4.5f);  // Comment
             });
 
             table.Header(header =>

@@ -10,7 +10,7 @@
 
 <PageTitle>Edit Payment - Diamond Net</PageTitle>
 
-<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary);">
     <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 16px;">
             <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px;" @onclick='() => NavManager.NavigateTo("/payments")' title="Back to Payments">
@@ -44,14 +44,14 @@
             <EditForm Model="this" FormName="editPaymentForm" OnValidSubmit="ProcessEditPayment">
                 <div style="margin-bottom: 24px;">
                     <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Customer</label>
-                    <div style="padding: 12px; background: #F3F4F6; border-radius: 10px; color: var(--text-secondary); font-weight: 500;">
+                    <div style="padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 10px; color: var(--text-secondary); font-weight: 500;">
                         <span style="font-weight: 800; color: var(--text-primary);">@(paymentToEdit.Customer?.ConnectionId?.ToLower() ?? "N/A")</span> (@(paymentToEdit.Customer?.Name ?? "Unknown"))
                     </div>
                 </div>
 
                 <div style="margin-bottom: 24px;">
                     <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Receipt Number</label>
-                    <div style="padding: 12px; background: #F3F4F6; border-radius: 10px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">
+                    <div style="padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 10px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">
                         @paymentToEdit.ReceiptNumber
                     </div>
                 </div>
@@ -90,7 +90,7 @@
                 <div class="responsive-grid-2" style="margin-bottom: 24px; gap: 16px;">
                     <div>
                         <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Discount (Rs.)</label>
-                        <InputNumber @bind-Value="editDiscount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                        <InputNumber @bind-Value="editDiscount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: var(--border-glass); background: var(--bg-secondary);" />
                     </div>
                     <div>
                         <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Total Charge (Rs.)</label>
@@ -102,12 +102,12 @@
 
                 <div style="margin-bottom: 24px;">
                     <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Amount Collected (Rs.)</label>
-                    <InputNumber @bind-Value="editAmount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                    <InputNumber @bind-Value="editAmount" class="form-control" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: var(--border-glass); background: var(--bg-secondary);" />
                 </div>
 
                 <div style="margin-bottom: 24px;">
                     <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Payment Method</label>
-                    <InputSelect @bind-Value="editMethodId" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;">
+                    <InputSelect @bind-Value="editMethodId" class="form-control" style="padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: var(--border-glass); background: var(--bg-secondary);">
                         @if (methods != null)
                         {
                             @foreach (var method in methods)
@@ -120,7 +120,7 @@
                 
                 <div style="margin-bottom: 32px;">
                     <label style="display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: var(--text-primary);">Payment Date</label>
-                    <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="editDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: #E5E7EB; background: #F9FAFB;" />
+                    <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="editDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; border-color: var(--border-glass); background: var(--bg-secondary);" />
                 </div>
 
                 <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px 0 rgba(99, 102, 241, 0.5)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 14px 0 rgba(99, 102, 241, 0.4)';">

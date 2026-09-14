@@ -11,7 +11,7 @@
 
 <PageTitle>Cash Handover - Diamond Net</PageTitle>
 
-<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary); background: linear-gradient(145deg, #ffffff, #f8fafc);">
+<div class="glass-panel" style="margin-bottom: 24px; position: relative; z-index: 10; border-top: 4px solid var(--accent-primary);">
     <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 16px;">
             <div style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 12px; border-radius: 12px;">
@@ -93,7 +93,7 @@
                         </div>
                         @if (isFormDropdownOpen)
                         {
-                            <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #ffffff; border-radius: 8px; border: 1px solid var(--border-glass); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); z-index: 999999; overflow: hidden; animation: fadeIn 0.15s ease-out;">
+                            <div style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-glass); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); z-index: 999999; overflow: hidden; animation: fadeIn 0.15s ease-out;">
                                 @foreach (var emp in Employees)
                                 {
                                     <div class="custom-dropdown-item @(NewHandover.EmployeeId == emp.Id ? "active" : "")" @onmousedown='() => SelectFormEmployee(emp.Id)'>
@@ -152,7 +152,7 @@
         </div>
         @if (isFilterDropdownOpen)
         {
-            <div style="position: absolute; top: 100%; right: 0; margin-top: 8px; width: 220px; background: #ffffff; border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); z-index: 999999; overflow: hidden; animation: fadeIn 0.15s ease-out;">
+            <div style="position: absolute; top: 100%; right: 0; margin-top: 8px; width: 220px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); z-index: 999999; overflow: hidden; animation: fadeIn 0.15s ease-out;">
                 <div class="custom-dropdown-item @(string.IsNullOrEmpty(HistoryFilterEmployeeId) ? "active" : "")" @onmousedown='() => SelectHistoryEmployee("")'>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--border-glass); display: flex; align-items: center; justify-content: center; color: #4B5563;">
@@ -197,7 +197,7 @@
     else
     {
         <div class="table-responsive">
-            <table class="table">
+            <table class="premium-table" style="width: 100%; border-collapse: collapse; margin: 0; min-width: 600px;">
                 <thead>
                     <tr>
                         <th>Date</th>

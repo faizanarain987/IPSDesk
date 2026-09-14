@@ -66,7 +66,7 @@
                 <div style="grid-column: span 2;">
                     <label style="display: block; margin-bottom: 8px;">Select Package <span style="color: red;">*</span></label>
                     <div style="position: relative;" tabindex="0" @onblur="() => { isPackageDropdownOpen = false; }">
-                        <div class="form-control custom-select" @onclick="() => isPackageDropdownOpen = !isPackageDropdownOpen" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; background-color: white; min-height: 46px; gap: 8px;">
+                        <div class="form-control custom-select" tabindex="0" @onclick="() => isPackageDropdownOpen = !isPackageDropdownOpen" style="position: relative; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--bg-secondary); border-color: @(isPackageDropdownOpen ? "var(--accent-primary)" : "var(--border-glass)"); box-shadow: @(isPackageDropdownOpen ? "0 0 0 3px rgba(99, 102, 241, 0.2)" : "none"); padding-right: 12px; min-height: 46px; gap: 8px;">
                             @if (customerModel.CurrentPackageId != null && packages != null)
                             {
                                 var selectedPkg = packages.FirstOrDefault(p => p.Id == customerModel.CurrentPackageId);
@@ -88,12 +88,12 @@
                         
                         @if (isPackageDropdownOpen)
                         {
-                            <div @onmousedown:preventDefault style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #ffffff; border: 1px solid var(--border-glass); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1); z-index: 100; max-height: 280px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;">
+                            <div @onmousedown:preventDefault style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1); z-index: 100; max-height: 280px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;">
                                 @if (packages != null)
                                 {
                                     @foreach (var pkg in packages)
                                     {
-                                        <div @onmousedown="() => SelectPackage(pkg.Id)" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s; background-color: @(customerModel.CurrentPackageId == pkg.Id ? "rgba(99,102,241,0.08)" : "transparent");" onmouseover="this.style.backgroundColor='rgba(99,102,241,0.08)'" onmouseout="this.style.backgroundColor='@(customerModel.CurrentPackageId == pkg.Id ? "rgba(99,102,241,0.08)" : "transparent")'">
+                                        <div @onmousedown="() => SelectPackage(pkg.Id)" style="padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border-glass); transition: background-color 0.15s; background-color: @(customerModel.CurrentPackageId == pkg.Id ? "rgba(99,102,241,0.08)" : "transparent");" onmouseover="this.style.backgroundColor='rgba(99,102,241,0.08)'" onmouseout="this.style.backgroundColor='@(customerModel.CurrentPackageId == pkg.Id ? "rgba(99,102,241,0.08)" : "transparent")'">
                                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                                                 <div style="display: flex; flex-direction: column;">
                                                     <span style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">@pkg.Name</span>

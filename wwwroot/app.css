@@ -4,6 +4,7 @@ html {
     font-size: 14.4px; /* Scales down all rem units to 90% of default 16px */
 }
 :root {
+    color-scheme: light;
     /* Premium Light Theme Colors */
     --bg-main: #f8fafc;
     --bg-secondary: #ffffff;
@@ -21,9 +22,13 @@ html {
 
     --sidebar-width: 260px;
     --header-height: 70px;
+    
+    --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+    --scrollbar-hover: rgba(0, 0, 0, 0.25);
 }
 
 body.dark-mode {
+    color-scheme: dark;
     --bg-main: #0f172a;
     --bg-secondary: #1e293b;
     --bg-glass: rgba(30, 41, 59, 0.7);
@@ -37,12 +42,34 @@ body.dark-mode {
     --accent-hover: #3b82f6;
     
     --hover-bg: rgba(255, 255, 255, 0.05);
+    
+    --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+    --scrollbar-hover: rgba(255, 255, 255, 0.25);
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-hover);
 }
 
 body {
@@ -236,7 +263,8 @@ h2 { font-size: 1.5rem; }
 }
 
 .btn-secondary:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--hover-bg) !important;
+    color: var(--text-primary) !important;
     transform: translateY(-1px);
 }
 
@@ -269,6 +297,11 @@ h2 { font-size: 1.5rem; }
 .btn-success:active {
     transform: scale(0.96) translateY(0);
     box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+}
+
+select, option {
+    color: var(--text-primary) !important;
+    background-color: var(--bg-secondary) !important;
 }
 
 .btn-icon {
@@ -351,10 +384,27 @@ h2 { font-size: 1.5rem; }
     margin-bottom: 16px;
 }
 
+.form-control::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
 .form-control:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    outline: none !important;
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Fix browser autofill/autocomplete white background issue in dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px var(--bg-secondary) inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 .header-search {
@@ -547,10 +597,10 @@ input:checked + .toggle-slider:before {
 
 .modal-cancel-btn {
     padding: 8px 16px;
-    border: 1px solid #D1D5DB;
+    border: 1px solid var(--border-glass);
     border-radius: 6px;
-    background: white;
-    color: #374151;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
     font-weight: 500;
     font-size: 0.95rem;
     cursor: pointer;
@@ -558,8 +608,8 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-cancel-btn:hover {
-    background-color: #F3F4F6;
-    border-color: #9CA3AF;
+    background-color: var(--bg-primary);
+    border-color: var(--text-primary);
 }
 
 .modal-delete-btn {
