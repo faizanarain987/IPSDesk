@@ -32,6 +32,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         builder.Entity<Customer>()
             .HasQueryFilter(c => !c.IsDeleted);
+            
+        builder.Entity<Customer>()
+            .HasOne(c => c.CurrentPackage)
+            .WithMany()
+            .HasForeignKey(c => c.CurrentPackageId)
+            .IsRequired(false);
 
         builder.Entity<Package>()
             .HasQueryFilter(p => !p.IsDeleted);

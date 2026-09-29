@@ -227,7 +227,7 @@
         else
         {
             isEditMode = false;
-            string newConnId = "diamond-1";
+            string newConnId = "1";
             var allCustomers = await DbContext.Customers.ToListAsync();
             if (allCustomers.Any())
             {
@@ -240,7 +240,7 @@
                     .DefaultIfEmpty(0)
                     .Max();
                     
-                newConnId = $"diamond-{maxId + 1}";
+                newConnId = $"{maxId + 1}";
             }
             customerModel = new CustomerViewModel { ConnectionId = newConnId };
         }
@@ -266,7 +266,8 @@
                 IsActive = customerModel.IsActive,
                 ConnectionDate = customerModel.ConnectionDate,
                 CurrentPackageId = customerModel.CurrentPackageId,
-                CurrentBalance = customerModel.CurrentBalance
+                CurrentBalance = customerModel.CurrentBalance,
+                Password = customerModel.ConnectionId
             };
             DbContext.Customers.Add(newCustomer);
             

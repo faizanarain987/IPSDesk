@@ -35,7 +35,6 @@ public class Customer : AuditableEntity
     [Required(ErrorMessage = "Please select a package")]
     public Guid? CurrentPackageId { get; set; }
     public Package? CurrentPackage { get; set; }
-    
     public ICollection<MonthlyPackageHistory> MonthlyHistory { get; set; } = new List<MonthlyPackageHistory>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public ICollection<CustomerLedger> Ledgers { get; set; } = new List<CustomerLedger>();

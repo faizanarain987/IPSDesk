@@ -55,7 +55,7 @@
 </div>
 
 @code {
-    private string _searchQuery = "diamond-";
+    private string _searchQuery = "";
     private string SearchQuery
     {
         get => _searchQuery;
@@ -107,7 +107,7 @@
     private void NavigateToCustomer(Guid id)
     {
         showDropdown = false;
-        _searchQuery = "diamond-";
+        _searchQuery = "";
         searchResults = null;
         // Ensure navigation actually triggers a refresh if we're already on a profile page
         NavManager.NavigateTo($"/customers/billinghub/{id}", forceLoad: true);
