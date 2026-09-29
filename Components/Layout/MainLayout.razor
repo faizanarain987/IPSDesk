@@ -12,27 +12,41 @@
 
 <ToastContainer />
 
-<div class="app-container">
-    <div class="sidebar-overlay @(isSidebarOpen ? "open" : "")" @onclick="ToggleSidebar"></div>
-    <div class="sidebar @(isSidebarOpen ? "open" : "")">
-        <a href="/" class="sidebar-brand" style="display: flex; align-items: center; gap: 12px; padding: 12px 24px; text-decoration: none; color: inherit; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
-            <div style="background: white; padding: 4px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;">
-                <img src="/images/isp-logo.jpg" alt="ISP Logo" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;" />
-            </div>
-            <span style="font-weight: 800; font-size: 1.25rem; background: linear-gradient(90deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">@companyName</span>
-        </a>
-        <NavMenu OnNavLinkClicked="CloseSidebar" />
-    </div>
+<div class="app-container @(isCustomerUser ? "customer-view" : "")">
+    @if (!isCustomerUser)
+    {
+        <div class="sidebar-overlay @(isSidebarOpen ? "open" : "")" @onclick="ToggleSidebar"></div>
+        <div class="sidebar @(isSidebarOpen ? "open" : "")">
+            <a href="/" class="sidebar-brand" style="display: flex; align-items: center; gap: 12px; padding: 12px 24px; text-decoration: none; color: inherit; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                <div style="background: white; padding: 4px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;">
+                    <img src="/images/isp-logo.jpg" alt="ISP Logo" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;" />
+                </div>
+                <span style="font-weight: 800; font-size: 1.25rem; background: linear-gradient(90deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">@companyName</span>
+            </a>
+            <NavMenu OnNavLinkClicked="CloseSidebar" />
+        </div>
+    }
 
-    <main class="main-content">
+    <main class="main-content" style="@(isCustomerUser ? "margin-left: 0; padding-top: 0; width: 100%;" : "")">
         <header class="top-bar">
             <div style="display: flex; align-items: center; flex: 1; min-width: 0; padding-right: 16px;">
-                <button class="mobile-menu-btn" @onclick="ToggleSidebar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
-                <div style="flex: 1; max-width: 400px; min-width: 0;">
-                    <GlobalSearchBar />
-                </div>
+                @if (!isCustomerUser)
+                {
+                    <button class="mobile-menu-btn" @onclick="ToggleSidebar">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div style="flex: 1; max-width: 400px; min-width: 0;">
+                        <GlobalSearchBar />
+                    </div>
+                }
+                else
+                {
+                    <!-- Brand for customer view -->
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="/images/isp-logo.jpg" alt="ISP Logo" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;" />
+                        <span style="font-weight: 800; font-size: 1.25rem; background: linear-gradient(90deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">@companyName</span>
+                    </div>
+                }
             </div>
             <div style="display: flex; align-items: center; gap: 16px;">
                 <ThemeToggle />
@@ -40,7 +54,7 @@
             </div>
         </header>
 
-        <article class="page-content">
+        <article class="page-content @(isCustomerUser ? "customer-page" : "")" style="@(isCustomerUser ? "margin: 0 auto;" : "")">
             @Body
         </article>
     </main>
@@ -55,6 +69,7 @@
 @code {
     private bool isSidebarOpen = false;
     private string companyName = "IPS Desk";
+    private bool isCustomerUser = false;
 
     private void ToggleSidebar()
     {
@@ -81,6 +96,7 @@
 
         if (user.Identity is not null && user.Identity.IsAuthenticated)
         {
+            isCustomerUser = user.IsInRole("CustomerUser");
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             CurrentUser.UserId = userId;
             

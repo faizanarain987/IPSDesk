@@ -3,6 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
 @using IPSDesk.Models
 @layout IPSDesk.Components.Layout.AuthLayout
 @inject SignInManager<ApplicationUser> SignInManager
@@ -251,17 +252,11 @@
                 errorMessage = "Your account has been deactivated. Please contact an administrator.";
                 return;
             }
-        }
-
-        // This doesn't count login failures towards account lockout
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, false, lockoutOnFailure: false);
-        
-        if (result.Succeeded)
-        {
-            Logger.LogInformation("User logged in.");
             
-            if (user != null)
+            var result = await SignInManager.PasswordSignInAsync(user.UserName, Input.Password, false, lockoutOnFailure: false);
+            if (result.Succeeded)
             {
+                Logger.LogInformation("User logged in.");
                 var principal = await SignInManager.CreateUserPrincipalAsync(user);
                 
                 if (principal.HasClaim("Permission", AppPermissions.Dashboard.View))
@@ -292,21 +287,53 @@
                 {
                     NavigationManager.NavigateTo("/"); // Fallback
                 }
+                return;
+            }
+            else if (result.IsLockedOut)
+            {
+                Logger.LogWarning("User account locked out.");
+                errorMessage = "This account has been locked out.";
+                return;
             }
             else
             {
-                NavigationManager.NavigateTo("/");
+                errorMessage = "Invalid login attempt.";
+                return;
             }
-        }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            errorMessage = "This account has been locked out.";
         }
         else
         {
-            errorMessage = "Invalid login attempt.";
+            // Check if it's a customer
+            using var scope = HttpContext.RequestServices.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<IPSDesk.Data.ApplicationDbContext>();
+            var customer = dbContext.Customers.FirstOrDefault(c => c.ConnectionId == Input.Email && c.Password == Input.Password);
+            
+            if (customer != null)
+            {
+                if (!customer.IsActive)
+                {
+                    errorMessage = "Your account is inactive.";
+                    return;
+                }
+                
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, customer.Id.ToString()),
+                    new Claim(ClaimTypes.Name, customer.Name),
+                    new Claim(ClaimTypes.Role, "CustomerUser"),
+                    new Claim("ConnectionId", customer.ConnectionId)
+                };
+                
+                var identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
+                var principal = new ClaimsPrincipal(identity);
+                
+                await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
+                NavigationManager.NavigateTo($"/customers/profile/{customer.Id}");
+                return;
+            }
         }
+
+        errorMessage = "Invalid login attempt.";
     }
 
     private sealed class InputModel

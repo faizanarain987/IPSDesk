@@ -8,6 +8,8 @@
 @inject IPSDesk.Services.PdfExportService PdfExportService
 @inject IJSRuntime JSRuntime
 @inject IPSDesk.Services.ToastService ToastService
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Customer Profile - Diamond Net</PageTitle>
 
@@ -24,13 +26,16 @@ else
         <div class="responsive-flex" style="display: flex; align-items: flex-start; gap: 24px;">
             <!-- Back Button & Avatar -->
             <div style="display: flex; align-items: center; gap: 16px;">
-                <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px; flex-shrink: 0;" @onclick='() => NavManager.NavigateTo("/customers")' title="Back to Customers">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                </button>
+                @if (!isCustomerUser)
+                {
+                    <button class="btn-icon" style="color: var(--text-secondary); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glass); border-radius: 50%; width: 40px; height: 40px; flex-shrink: 0;" @onclick='() => NavManager.NavigateTo("/customers")' title="Back to Customers">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    </button>
+                }
             </div>
 
             <!-- Profile Info -->
-            <div style="flex: 1; width: 100%;">
+            <div style="flex: 1; width: 100%; min-width: 0;">
                 <div class="responsive-flex" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="width: 100%;">
                         <h1 style="margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; word-break: break-word;">@customer.Name <span style="font-weight: bold;">(@customer.ConnectionId)</span></h1>
@@ -49,16 +54,19 @@ else
                         </div>
                     </div>
                     <div class="responsive-flex" style="display: flex; gap: 16px; align-items: center; width: 100%;">
-                        <div style="background: rgba(0,0,0,0.02); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border-glass); min-width: 150px; width: 100%;">
-                            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 4px;">Current Balance</span>
-                            <div style="display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; font-weight: 700; font-size: 1.5rem; color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : (customer.CurrentBalance < 0 ? "var(--accent-success)" : "var(--text-primary)"));">
+                        <div style="background: @(customer.CurrentBalance > 0 ? "rgba(225, 29, 72, 0.05)" : "rgba(16, 185, 129, 0.05)"); padding: 16px 24px; border-radius: 12px; border: 1px solid @(customer.CurrentBalance > 0 ? "rgba(225, 29, 72, 0.1)" : "rgba(16, 185, 129, 0.1)"); min-width: 150px; width: 100%;">
+                            <span style="color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)"); font-size: 0.85rem; display: block; margin-bottom: 4px; font-weight: 600;">Current Balance</span>
+                            <div style="display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; font-weight: 700; font-size: 1.5rem; color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)");">
                                 <span style="font-size: 1rem; color: var(--text-secondary);">Rs.</span>
                                 <span>@customer.CurrentBalance.ToString("N0")</span>
                             </div>
                         </div>
                         <div class="responsive-flex" style="display: flex; gap: 8px; width: 100%;">
-                            <button class="btn-success" style="width: 100%;" @onclick='() => NavManager.NavigateTo($"/customers/billinghub/{customer.Id}")'>Renew Package</button>
-                            <button class="btn-primary" style="width: 100%;" @onclick='() => NavManager.NavigateTo($"/customers/billinghub/{customer.Id}")'>Record Payment</button>
+                            @if (!isCustomerUser)
+                            {
+                                <button class="btn-success" style="width: 100%;" @onclick='() => NavManager.NavigateTo($"/customers/billinghub/{customer.Id}")'>Renew Package</button>
+                                <button class="btn-primary" style="width: 100%;" @onclick='() => NavManager.NavigateTo($"/customers/billinghub/{customer.Id}")'>Record Payment</button>
+                            }
                         </div>
                     </div>
                 </div>
@@ -129,10 +137,10 @@ else
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 24px;">
-        <div class="glass-panel" style="min-width: 0; padding: 0; display: flex; flex-direction: column;">   
-            <div style="padding: 24px; border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center;">
+        <div class="glass-panel" style="min-width: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; width: 100%;">   
+            <div style="padding: 24px; border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <h2 style="margin: 0;">Account Ledger</h2>
-                <button class="btn-primary" @onclick="() => showLedgerExportModal = true">
+                <button class="btn-primary" style="white-space: nowrap;" @onclick="() => showLedgerExportModal = true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     Export PDF
                 </button>
@@ -145,7 +153,7 @@ else
             }
             else
             {
-                <div class="table-scroll-wrapper">
+                <div class="table-scroll-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
                     <table class="premium-table" style="margin: 0; width: 100%; min-width: 600px;">
                         <thead>
                             <tr>
@@ -168,10 +176,10 @@ else
                                         <div style="font-size: 0.8rem; color: var(--text-secondary);">@ledger.TransactionDate.ToString("hh:mm tt")</div>
                                     </td>
                                     <td>@ledger.Description</td>
-                                    <td style="color: @(prevBalance > 0 ? "var(--accent-danger)" : (prevBalance < 0 ? "var(--accent-success)" : "var(--text-secondary)"));">Rs. @prevBalance.ToString("N0")</td>
+                                    <td style="color: @(prevBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)");">Rs. @prevBalance.ToString("N0")</td>
                                     <td style="color: @(ledger.Debit > 0 ? "var(--accent-danger)" : "inherit");">@(ledger.Debit > 0 ? $"Rs. {ledger.Debit:N0}" : "-")</td>
                                     <td style="color: @(ledger.Credit > 0 ? "var(--accent-success)" : "inherit");">@(ledger.Credit > 0 ? $"Rs. {ledger.Credit:N0}" : "-")</td>
-                                    <td style="font-weight: 600; color: @(ledger.Balance > 0 ? "var(--accent-danger)" : (ledger.Balance < 0 ? "var(--accent-success)" : "var(--text-primary)"));">Rs. @ledger.Balance.ToString("N0")</td>
+                                    <td style="font-weight: 600; color: @(ledger.Balance > 0 ? "var(--accent-danger)" : "var(--accent-success)");">Rs. @ledger.Balance.ToString("N0")</td>
                                     <td><span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(0,0,0,0.04); padding: 2px 8px; border-radius: 12px;">@(ledger.CreatedByName ?? "System")</span></td>
                                 </tr>
                             }
@@ -201,10 +209,10 @@ else
             }
         </div>
 
-        <div class="glass-panel" style="min-width: 0; padding: 0; display: flex; flex-direction: column;">
-            <div style="padding: 24px; border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center;">
+        <div class="glass-panel" style="min-width: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+            <div style="padding: 24px; border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <h2 style="margin: 0;">Monthly Package History</h2>
-                <button class="btn-primary" @onclick="() => showExportModal = true">
+                <button class="btn-primary" style="white-space: nowrap;" @onclick="() => showExportModal = true">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     Export PDF
                 </button>
@@ -217,8 +225,8 @@ else
             }
             else
             {
-                <div class="table-scroll-wrapper">
-                    <table class="premium-table" style="margin: 0; width: 100%; min-width: 500px;">
+                <div class="table-scroll-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <table class="premium-table" style="margin: 0; width: 100%; min-width: 600px;">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -370,6 +378,7 @@ else
     public Guid Id { get; set; }
 
     private Customer? customer;
+    private bool isCustomerUser = false;
 
     // Ledger Pagination
     private int ledgerCurrentPage = 1;
@@ -492,6 +501,9 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isCustomerUser = authState.User.IsInRole("CustomerUser");
+
         customer = await DbContext.Customers
             .Include(c => c.CurrentPackage)
             .Include(c => c.Payments)

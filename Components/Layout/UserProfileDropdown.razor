@@ -31,6 +31,15 @@
                         Change Password
                     </a>
                 </Authorized>
+                <NotAuthorized>
+                    @if (role == "Customer")
+                    {
+                        <a @onclick="NavigateToChangePassword" class="dropdown-item" style="cursor: pointer;">
+                            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            Change Password
+                        </a>
+                    }
+                </NotAuthorized>
             </AuthorizeView>
             <form action="/logout" method="post" style="margin: 0;">
                 <AntiforgeryToken />
@@ -221,17 +230,27 @@
         var user = authState.User;
         if (user.Identity?.IsAuthenticated == true)
         {
-            using var scope = ScopeFactory.CreateScope();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var appUser = await userManager.GetUserAsync(user);
-            if (appUser != null)
+            if (user.IsInRole("CustomerUser"))
             {
-                fullName = appUser.FullName ?? "User";
-                email = appUser.Email ?? "";
-                initials = string.IsNullOrEmpty(fullName) ? "U" : fullName.Substring(0, 1).ToUpper();
-                
-                var roles = await userManager.GetRolesAsync(appUser);
-                role = roles.FirstOrDefault() ?? "Manager";
+                fullName = user.Identity.Name ?? "Customer";
+                email = user.FindFirst("ConnectionId")?.Value ?? "";
+                role = "Customer";
+                initials = string.IsNullOrEmpty(fullName) ? "C" : fullName.Substring(0, 1).ToUpper();
+            }
+            else
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                var appUser = await userManager.GetUserAsync(user);
+                if (appUser != null)
+                {
+                    fullName = appUser.FullName ?? "User";
+                    email = appUser.Email ?? "";
+                    initials = string.IsNullOrEmpty(fullName) ? "U" : fullName.Substring(0, 1).ToUpper();
+                    
+                    var roles = await userManager.GetRolesAsync(appUser);
+                    role = roles.FirstOrDefault() ?? "Employee";
+                }
             }
         }
     }

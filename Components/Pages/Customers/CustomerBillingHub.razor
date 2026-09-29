@@ -57,9 +57,9 @@ else
                     </div>
                 </div>
 
-            <div style="display: flex; flex-direction: column; align-items: flex-end; background: rgba(225, 29, 72, 0.1); padding: 16px 24px; border-radius: 16px; border: 1px solid rgba(225, 29, 72, 0.2); box-shadow: 0 4px 6px -1px rgba(225, 29, 72, 0.05);">
-                <span style="color: var(--accent-danger); font-size: 0.85rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">Outstanding Balance</span>
-                <div style="font-size: 2.2rem; font-weight: 800; color: var(--accent-danger); display: flex; align-items: baseline; gap: 4px;">
+            <div style="display: flex; flex-direction: column; align-items: flex-end; background: @(customer.CurrentBalance > 0 ? "rgba(225, 29, 72, 0.1)" : "rgba(16, 185, 129, 0.1)"); padding: 16px 24px; border-radius: 16px; border: 1px solid @(customer.CurrentBalance > 0 ? "rgba(225, 29, 72, 0.2)" : "rgba(16, 185, 129, 0.2)"); box-shadow: 0 4px 6px -1px @(customer.CurrentBalance > 0 ? "rgba(225, 29, 72, 0.05)" : "rgba(16, 185, 129, 0.05)");">
+                <span style="color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)"); font-size: 0.85rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">@(customer.CurrentBalance > 0 ? "Outstanding Balance" : "Current Balance")</span>
+                <div style="font-size: 2.2rem; font-weight: 800; color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)"); display: flex; align-items: baseline; gap: 4px;">
                     <span style="font-size: 1.2rem; opacity: 0.8;">Rs.</span>
                     @customer.CurrentBalance.ToString("N0")
                 </div>

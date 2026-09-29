@@ -108,9 +108,9 @@
                     </div>
                 </div>
 
-                <div style="background: #fff1f2; border: 1px solid #ffe4e6; padding: 16px; border-radius: 12px;">
-                    <div style="color: #e11d48; font-size: 0.85rem; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Current Balance (Outstanding)</div>
-                    <div style="font-size: 1.4rem; font-weight: 800; color: #be123c;">
+                <div style="background: @(customer.CurrentBalance > 0 ? "rgba(225, 29, 72, 0.05)" : "rgba(16, 185, 129, 0.05)"); border: 1px solid @(customer.CurrentBalance > 0 ? "rgba(225, 29, 72, 0.1)" : "rgba(16, 185, 129, 0.1)"); padding: 16px; border-radius: 12px;">
+                    <div style="color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)"); font-size: 0.85rem; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">@(customer.CurrentBalance > 0 ? "Current Balance (Outstanding)" : "Current Balance")</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : "var(--accent-success)");">
                         Rs. @customer.CurrentBalance.ToString("N0")
                     </div>
                 </div>
