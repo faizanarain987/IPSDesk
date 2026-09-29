@@ -17,6 +17,7 @@ public class MonthlyPackageHistory : AuditableEntity
     public decimal PackagePrice { get; set; }
     public decimal AmountPaid { get; set; }
     public decimal RemainingBalance { get; set; }
+    public bool IsPaid { get; set; } = false;
     
     public DateTime RenewalDate { get; set; } = DateTime.Now;
     

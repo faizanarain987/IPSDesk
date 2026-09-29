@@ -119,7 +119,10 @@
                     @foreach (var p in displayedPayments)
                     {
                         <tr>
-                            <td>@p.PaymentDate.ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <div style="font-weight: 500;">@p.PaymentDate.ToString("MMM dd, yyyy")</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">@p.PaymentDate.ToString("hh:mm tt")</div>
+                            </td>
                             <td style="font-family: monospace;">@p.ReceiptNumber</td>
                             <td style="color: var(--text-secondary);">@(p.Customer?.ConnectionId ?? "N/A")</td>
                             <td style="font-weight: 500;">@(p.Customer?.Name ?? "Unknown")</td>

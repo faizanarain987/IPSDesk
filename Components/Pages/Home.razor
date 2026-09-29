@@ -236,7 +236,10 @@
                 @foreach (var payment in recentPayments)
                 {
                     <tr style="border-bottom: 1px solid var(--border-glass);">
-                        <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-secondary);">@payment.Date.ToString("MMM dd, yyyy")</td>
+                        <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-secondary);">
+                            <div style="font-weight: 500; color: var(--text-primary);">@payment.Date.ToString("MMM dd, yyyy")</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">@payment.Date.ToString("hh:mm tt")</div>
+                        </td>
                         <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-secondary);">@(payment.ConnectionId ?? "N/A")</td>
                         <td style="padding: 16px 24px; font-size: 0.9rem; color: var(--text-primary);">@payment.CustomerName</td>
                         <td style="padding: 16px 24px; font-size: 0.9rem; font-weight: 600; color: var(--accent-success);">Rs. @payment.Amount.ToString("N0")</td>

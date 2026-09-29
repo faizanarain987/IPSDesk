@@ -84,7 +84,10 @@ else
                 <div style="text-align: right;">
                     <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #0f172a;">Invoice</div>
                     <div style="font-size: 14px; color: #334155;">Invoice No: <strong>@payment.ReceiptNumber</strong></div>
-                    <div style="font-size: 14px; color: #334155;">Invoice Date: <strong>@payment.PaymentDate.ToString("dd-MMM-yyyy")</strong></div>
+                    <div style="font-size: 14px; color: #334155;">Invoice Date: 
+                        <div style="font-weight: bold;">@payment.PaymentDate.ToString("MMM dd, yyyy")</div>
+                        <div style="font-size: 0.8rem; font-weight: normal; color: #64748b;">@payment.PaymentDate.ToString("hh:mm tt")</div>
+                    </div>
                 </div>
             </div>
             
@@ -174,7 +177,9 @@ else
             </div>
             
             <div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px;">
-                Generated @DateTime.Now.ToString("dd-MMM-yyyy HH:mm")
+                Generated 
+                <div style="font-weight: 500;">@DateTime.Now.ToString("MMM dd, yyyy")</div>
+                <div style="font-size: 0.8rem;">@DateTime.Now.ToString("hh:mm tt")</div>
             </div>
         </div>
     </div>

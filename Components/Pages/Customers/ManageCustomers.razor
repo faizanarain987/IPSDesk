@@ -68,7 +68,7 @@
                             }
                         </div>
                     </th>
-                    <th>Phone</th>
+                    <th>Expiration</th>
                     <th>Package</th>
                     <th style="cursor: pointer; user-select: none;" @onclick='() => SetSort("Balance")'>
                         <div style="display: flex; align-items: center; gap: 6px;">
@@ -109,28 +109,49 @@
                                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">@customer.Area</div>
                             }
                         </td>
-                        <td style="color: var(--text-secondary);">@customer.Phone</td>
                         <td style="color: var(--text-secondary);">
-                            @(customer.CurrentPackage?.Name ?? "N/A")
                             @if (customer.CurrentPackage != null)
                             {
                                 var lastRenewal = customer.MonthlyHistory?.OrderByDescending(h => h.RenewalDate).FirstOrDefault();
                                 if (lastRenewal != null)
                                 {
-                                    if (lastRenewal.RenewalDate.AddMonths(1).Date < DateTime.Now.Date)
-                                    {
-                                        <span style="margin-left: 6px; background: #fee2e2; color: #ef4444; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Expired</span>
-                                    }
-                                    else
-                                    {
-                                        <span style="margin-left: 6px; background: #d1fae5; color: #047857; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Active</span>
-                                    }
+                                    var expiry = lastRenewal.RenewalDate.AddMonths(1);
+                                    <div style="font-weight: 500;">@expiry.ToString("MMM dd, yyyy")</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">@expiry.ToString("hh:mm tt")</div>
                                 }
                                 else
                                 {
-                                    <span style="margin-left: 6px; background: #fef3c7; color: #b45309; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Unpaid</span>
+                                    <span>-</span>
                                 }
                             }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </td>
+                        <td style="color: var(--text-secondary);">
+                            <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                                @(customer.CurrentPackage?.Name ?? "N/A")
+                                @if (customer.CurrentPackage != null)
+                                {
+                                    var lastRenewal = customer.MonthlyHistory?.OrderByDescending(h => h.RenewalDate).FirstOrDefault();
+                                    if (lastRenewal != null)
+                                    {
+                                        if (lastRenewal.RenewalDate.AddMonths(1).Date < DateTime.Now.Date)
+                                        {
+                                            <span style="margin-left: 6px; background: #fee2e2; color: #ef4444; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Expired</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="margin-left: 6px; background: #d1fae5; color: #047857; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Active</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span style="margin-left: 6px; background: #fef3c7; color: #b45309; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase;">Unpaid</span>
+                                    }
+                                }
+                            </div>
                         </td>
                         <td style="color: @(customer.CurrentBalance > 0 ? "var(--accent-danger)" : (customer.CurrentBalance < 0 ? "var(--accent-success)" : "var(--text-secondary)"))">
                             Rs. @customer.CurrentBalance.ToString("N0")

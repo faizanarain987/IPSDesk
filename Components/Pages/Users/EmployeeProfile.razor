@@ -119,7 +119,10 @@ else
                         @foreach (var payment in paymentsCollected.OrderByDescending(p => p.PaymentDate))
                         {
                             <tr>
-                                <td>@payment.PaymentDate.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                <td>
+                                    <div style="font-weight: 500;">@payment.PaymentDate.ToString("MMM dd, yyyy")</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">@payment.PaymentDate.ToString("hh:mm tt")</div>
+                                </td>
                                 <td>
                                     <a href="/payments/receipt/@payment.Id" style="color: var(--accent-primary); text-decoration: none;">@payment.ReceiptNumber</a>
                                 </td>

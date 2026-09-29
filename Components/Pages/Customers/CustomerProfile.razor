@@ -108,6 +108,7 @@ else
                     Connection Date
                 </span>
                 <div style="font-weight: 500; margin-top: 4px;">@customer.ConnectionDate.ToString("MMM dd, yyyy")</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">@customer.ConnectionDate.ToString("hh:mm tt")</div>
             </div>
 
             <div>
@@ -162,7 +163,10 @@ else
                             {
                                 decimal prevBalance = ledger.Balance - ledger.Debit + ledger.Credit;
                                 <tr>
-                                    <td>@ledger.TransactionDate.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <div style="font-weight: 500;">@ledger.TransactionDate.ToString("MMM dd, yyyy")</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">@ledger.TransactionDate.ToString("hh:mm tt")</div>
+                                    </td>
                                     <td>@ledger.Description</td>
                                     <td style="color: @(prevBalance > 0 ? "var(--accent-danger)" : (prevBalance < 0 ? "var(--accent-success)" : "var(--text-secondary)"));">Rs. @prevBalance.ToString("N0")</td>
                                     <td style="color: @(ledger.Debit > 0 ? "var(--accent-danger)" : "inherit");">@(ledger.Debit > 0 ? $"Rs. {ledger.Debit:N0}" : "-")</td>
@@ -237,7 +241,10 @@ else
                                     <td>Rs. @history.PackagePrice.ToString("N0")</td>
                                     <td>Rs. @history.Discount.ToString("N0")</td>
                                     <td>Rs. @((history.PackagePrice - history.Discount).ToString("N0"))</td>
-                                    <td>@history.RenewalDate.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <div style="font-weight: 500;">@history.RenewalDate.ToString("MMM dd, yyyy")</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">@history.RenewalDate.ToString("hh:mm tt")</div>
+                                    </td>
                                     <td>
                                         @if (history.Status == "Reversed")
                                         {
