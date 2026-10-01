@@ -154,6 +154,25 @@
                     <InputText @bind-Value="customerModel.Area" class="form-control" placeholder="e.g. Sector A" />
                     <ValidationMessage For="@(() => customerModel.Area)" />
                 </div>
+                @if (isEditMode)
+                {
+                    <div>
+                        <label>Password</label>
+                        <div style="position: relative;">
+                            <input type="@(showPassword ? "text" : "password")" @bind="customerModel.Password" class="form-control" placeholder="Password" style="padding-right: 40px;" />
+                            <button type="button" @onclick="TogglePasswordVisibility" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary);">
+                                @if (showPassword)
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                }
+                                else
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                }
                 <div style="grid-column: span 2;">
                     <label>Address <span style="color: red;">*</span></label>
                     <InputTextArea @bind-Value="customerModel.Address" class="form-control" rows="2" />
@@ -177,6 +196,12 @@
     private bool isPackageDropdownOpen = false;
     private CustomerViewModel? customerModel;
     private List<Package>? packages;
+    private bool showPassword = false;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
 
     private void SelectPackage(Guid pkgId)
     {
@@ -216,7 +241,8 @@
                     ConnectionDate = customer.ConnectionDate,
                     CurrentPackageId = customer.CurrentPackageId,
                     CurrentBalance = customer.CurrentBalance,
-                    Area = customer.Area
+                    Area = customer.Area,
+                    Password = customer.Password
                 };
             }
             else
@@ -250,6 +276,17 @@
     {
         if (customerModel == null) return;
 
+        var existingConnId = await DbContext.Customers.FirstOrDefaultAsync(c => 
+            c.ConnectionId == customerModel.ConnectionId && 
+            c.Id != customerModel.Id && 
+            !c.IsDeleted);
+            
+        if (existingConnId != null)
+        {
+            ToastService.ShowError($"Connection ID '{customerModel.ConnectionId}' is already used by {existingConnId.Name}.");
+            return;
+        }
+
         if (customerModel.Id == null)
         {
             var newCustomer = new Customer
@@ -266,7 +303,8 @@
                 IsActive = customerModel.IsActive,
                 ConnectionDate = customerModel.ConnectionDate,
                 CurrentPackageId = customerModel.CurrentPackageId,
-                CurrentBalance = customerModel.CurrentBalance
+                CurrentBalance = customerModel.CurrentBalance,
+                Password = "12345678"
             };
             DbContext.Customers.Add(newCustomer);
             
@@ -319,6 +357,11 @@
                 existingCustomer.ConnectionDate = customerModel.ConnectionDate;
                 existingCustomer.CurrentPackageId = customerModel.CurrentPackageId;
                 existingCustomer.CurrentBalance = customerModel.CurrentBalance;
+                
+                if (!string.IsNullOrEmpty(customerModel.Password))
+                {
+                    existingCustomer.Password = customerModel.Password;
+                }
                 
                 DbContext.Customers.Update(existingCustomer);
             }
@@ -401,6 +444,8 @@
         public Guid? CurrentPackageId { get; set; }
         
         public decimal CurrentBalance { get; set; } = 0;
+        
+        public string? Password { get; set; }
     }
 }
 
