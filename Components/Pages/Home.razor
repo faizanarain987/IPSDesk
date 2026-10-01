@@ -52,8 +52,17 @@
     <div class="glass-panel" style="padding: 20px; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-glass);">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-                <div style="color: #d97706; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Monthly Revenue</div>
-                <div style="font-size: 2rem; font-weight: 700; color: #d97706; line-height: 1;">Rs. @monthlyRevenue.ToString("N0")</div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div style="color: #d97706; font-size: 0.85rem; font-weight: 600;">Monthly Revenue</div>
+                    <button class="btn-icon" style="color: var(--text-secondary); padding: 0; background: none; border: none; cursor: pointer; height: 16px; width: 16px;" @onclick="ToggleRevenue" title="Toggle visibility">
+                        @if (showRevenue) {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        } else {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        }
+                    </button>
+                </div>
+                <div style="font-size: 2rem; font-weight: 700; color: #d97706; line-height: 1;">@(showRevenue ? $"Rs. {monthlyRevenue:N0}" : "••••••")</div>
                 <div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 8px;">
                     @if (lastMonthRevenue > 0)
                     {
@@ -76,8 +85,17 @@
     <div class="glass-panel" style="padding: 20px; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-glass);">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-                <div style="color: #4f46e5; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">Outstanding Balance</div>
-                <div style="font-size: 2rem; font-weight: 700; color: @(totalOutstanding > 0 ? "var(--accent-danger)" : "var(--accent-success)"); line-height: 1;">Rs. @totalOutstanding.ToString("N0")</div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div style="color: #4f46e5; font-size: 0.85rem; font-weight: 600;">Outstanding Balance</div>
+                    <button class="btn-icon" style="color: var(--text-secondary); padding: 0; background: none; border: none; cursor: pointer; height: 16px; width: 16px;" @onclick="ToggleOutstanding" title="Toggle visibility">
+                        @if (showOutstanding) {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        } else {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        }
+                    </button>
+                </div>
+                <div style="font-size: 2rem; font-weight: 700; color: @(totalOutstanding > 0 ? "var(--accent-danger)" : "var(--accent-success)"); line-height: 1;">@(showOutstanding ? $"Rs. {totalOutstanding:N0}" : "••••••")</div>
                 <div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 8px;">
                     <a href="/customers" style="color: var(--text-secondary); text-decoration: none;">View all dues</a>
                 </div>
@@ -277,6 +295,19 @@
 </style>
 
 @code {
+    private bool showRevenue = false;
+    private bool showOutstanding = false;
+    
+    private void ToggleRevenue()
+    {
+        showRevenue = !showRevenue;
+    }
+    
+    private void ToggleOutstanding()
+    {
+        showOutstanding = !showOutstanding;
+    }
+
     private int totalCustomers;
     private int activeCustomers;
     private decimal totalOutstanding;
