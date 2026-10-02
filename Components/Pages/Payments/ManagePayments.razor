@@ -38,7 +38,9 @@
             <input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search by customer name or ID..." class="form-control" style="padding-left: 36px; margin: 0; background: var(--bg-secondary);" />
         </div>
         <div style="position: relative;" @onfocusout="HideDropdown" tabindex="0">
-            <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-secondary); padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;" @onclick="ToggleDropdown">
+            @if (isAdmin)
+            {
+                <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-secondary); padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;" @onclick="ToggleDropdown">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">Processed By</span>
                 <div style="display: flex; align-items: center; justify-content: space-between; min-width: 140px; padding: 4px 8px; background-color: var(--bg-secondary); border-radius: 6px; font-weight: 500; color: var(--text-primary); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
@@ -72,17 +74,19 @@
                     }
                 </div>
             }
+            }
         </div>
+        
     </div>
 
-    @if (filteredPayments == null)
+    @if (displayedPayments == null)
     {
         <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
             <div class="spinner" style="margin: 0 auto 16px auto;"></div>
             <p>Loading payments...</p>
         </div>
     }
-    else if (!filteredPayments.Any())
+    else if (!displayedPayments.Any())
     {
         <div style="padding: 60px 20px; text-align: center; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 12px;">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="8"></line><line x1="10" y1="8" x2="18" y2="8"></line><line x1="6" y1="12" x2="6" y2="12"></line><line x1="10" y1="12" x2="18" y2="12"></line><line x1="6" y1="16" x2="6" y2="16"></line><line x1="10" y1="16" x2="18" y2="16"></line></svg>
@@ -171,14 +175,14 @@
                     <option value="30">30</option>
                     <option value="50">50</option>
                 </select>
-                <span>Showing @(filteredPayments.Any() ? ((currentPage - 1) * pageSize) + 1 : 0) to @(Math.Min(currentPage * pageSize, filteredPayments.Count())) of @(filteredPayments.Count())</span>
+                <span>Showing @(totalRecords > 0 ? ((currentPage - 1) * pageSize) + 1 : 0) to @(Math.Min(currentPage * pageSize, totalRecords)) of @totalRecords</span>
             </div>
             @if (totalPages > 1)
             {
                 <div style="display: flex; gap: 4px;">
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == 1)" @onclick="() => currentPage--">Prev</button>
+                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == 1)" @onclick="async () => { currentPage--; await LoadPaymentsData(); }">Prev</button>
                     <span style="padding: 4px 8px; font-size: 0.85rem; font-weight: 600;">@currentPage / @totalPages</span>
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == totalPages)" @onclick="() => currentPage++">Next</button>
+                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == totalPages)" @onclick="async () => { currentPage++; await LoadPaymentsData(); }">Next</button>
                 </div>
             }
         </div>
@@ -248,18 +252,18 @@
 </style>
 
 @code {
-    private List<Payment>? allPayments;
-    private List<Payment>? filteredPayments;
+    private List<Payment>? displayedPayments;
+    private int totalRecords = 0;
     
     // Pagination
     private int currentPage = 1;
     private int pageSize = 10;
-    private int totalPages => filteredPayments == null || !filteredPayments.Any() ? 1 : (int)Math.Ceiling((double)filteredPayments.Count() / pageSize);
-    private IEnumerable<Payment> displayedPayments => filteredPayments?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<Payment>();
+    private int totalPages => totalRecords == 0 ? 1 : (int)Math.Ceiling((double)totalRecords / pageSize);
 
-    private void ResetPage()
+    private async Task ResetPage()
     {
         currentPage = 1;
+        await LoadPaymentsData();
     }
 
     private List<string> employees = new();
@@ -271,7 +275,7 @@
         set 
         {
             _searchTerm = value;
-            ApplyFilters();
+            _ = ReloadDataAsync();
         }
     }
     
@@ -282,25 +286,34 @@
         set 
         {
             _selectedEmployee = value;
-            ApplyFilters();
+            _ = ReloadDataAsync();
         }
+    }
+    
+    private async Task ReloadDataAsync()
+    {
+        currentPage = 1;
+        await LoadPaymentsData();
+        await InvokeAsync(StateHasChanged);
     }
     
     private bool isDeleteModalVisible = false;
     private Payment? paymentToDelete;
+    private bool isAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadPayments();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAdmin = authState.User.IsInRole("Admin");
+        await LoadPaymentsData();
     }
 
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
-    private async Task LoadPayments()
+    private async Task LoadPaymentsData()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        bool isAdmin = user.IsInRole("Admin");
         string? userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         var query = DbContext.Payments
@@ -312,33 +325,11 @@
         {
             query = query.Where(p => p.CreatedById == userId);
         }
-
-        allPayments = await query
-            .OrderByDescending(p => p.PaymentDate)
-            .Take(500)
-            .ToListAsync();
-            
-        // Populate distinct employees who processed payments
-        employees = allPayments
-            .Where(p => !string.IsNullOrEmpty(p.CreatedByName))
-            .Select(p => p.CreatedByName!)
-            .Distinct()
-            .OrderBy(e => e)
-            .ToList();
-
-        if (!isAdmin && employees.Any())
-        {
-            _selectedEmployee = employees.First();
-        }
-
-        ApplyFilters();
-    }
-    
-    private void ApplyFilters()
-    {
-        if (allPayments == null) return;
         
-        var query = allPayments.AsQueryable();
+        if (selectedEmployee != "All")
+        {
+            query = query.Where(p => p.CreatedByName == selectedEmployee);
+        }
         
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -349,13 +340,26 @@
                 (p.ReceiptNumber.ToLower().Contains(lowerSearch))
             );
         }
+
+        totalRecords = await query.CountAsync();
         
-        if (selectedEmployee != "All")
+        displayedPayments = await query
+            .OrderByDescending(p => p.PaymentDate)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+            
+        // Populate distinct employees who processed payments
+        if (isAdmin && employees.Count == 0)
         {
-            query = query.Where(p => p.CreatedByName == selectedEmployee);
+            var allEmps = await DbContext.Payments
+                .Where(p => !p.IsDeleted && !string.IsNullOrEmpty(p.CreatedByName))
+                .Select(p => p.CreatedByName!)
+                .Distinct()
+                .ToListAsync();
+                
+            employees = allEmps.OrderBy(e => e).ToList();
         }
-        
-        filteredPayments = query.ToList();
     }
 
     private bool isDropdownOpen = false;
@@ -377,7 +381,6 @@
     {
         selectedEmployee = emp;
         isDropdownOpen = false;
-        ApplyFilters();
     }
 
     private void ConfirmReversePayment(Payment payment)
@@ -436,7 +439,7 @@
             await DbContext.SaveChangesAsync();
 
             ToastService.ShowSuccess($"Payment {payment.ReceiptNumber} reversed successfully.");
-            await LoadPayments();
+            await LoadPaymentsData();
         }
         catch (Exception ex)
         {

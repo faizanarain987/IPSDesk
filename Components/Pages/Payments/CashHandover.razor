@@ -336,12 +336,10 @@
         if (prev != null)
         {
             FilterStartDate = prev.DateRangeEnd.AddDays(1);
-            PreviousBalance = prev.RemainingBalance;
         }
         else
         {
             FilterStartDate = DateTime.Today.AddDays(-7);
-            PreviousBalance = 0;
         }
         FilterEndDate = DateTime.Today;
 
@@ -357,8 +355,19 @@
         var end = FilterEndDate.Date.AddDays(1).AddTicks(-1);
 
         TotalCollected = await DbContext.Payments
-            .Where(p => p.PaymentDate >= start && p.PaymentDate <= end && p.CreatedById == NewHandover.EmployeeId)
-            .SumAsync(p => p.AmountCollected);
+            .Where(p => p.PaymentDate >= start && p.PaymentDate <= end && p.CreatedById == NewHandover.EmployeeId && !p.IsDeleted)
+            .SumAsync(p => (decimal?)p.AmountCollected) ?? 0;
+            
+        // Calculate dynamic Previous Balance based on all history before the start date
+        var totalEverCollected = await DbContext.Payments
+            .Where(p => p.CreatedById == NewHandover.EmployeeId && p.PaymentDate < start && !p.IsDeleted)
+            .SumAsync(p => (decimal?)p.AmountCollected) ?? 0;
+            
+        var totalEverHandedOver = await DbContext.OwnerPayments
+            .Where(o => o.EmployeeId == NewHandover.EmployeeId && o.DateRangeEnd < start)
+            .SumAsync(o => (decimal?)o.Amount) ?? 0;
+            
+        PreviousBalance = totalEverCollected - totalEverHandedOver;
     }
 
     private async Task LoadHistory()

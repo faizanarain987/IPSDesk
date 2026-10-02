@@ -28,7 +28,9 @@ public class Payment : AuditableEntity
     public decimal FibreCharges { get; set; } = 0;
     public decimal ComplainCharges { get; set; } = 0;
     public decimal OtherCharges { get; set; } = 0;
+    public decimal ExtraCharges { get; set; } = 0;
 
     public DateTime PaymentDate { get; set; } = DateTime.Now;
     
+    public string? Remarks { get; set; }
 }

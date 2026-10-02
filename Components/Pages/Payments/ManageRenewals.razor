@@ -37,7 +37,9 @@
             <input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search by customer name or ID..." class="form-control" style="padding-left: 36px; margin: 0; background: var(--bg-secondary);" />
         </div>
         <div style="position: relative;" @onfocusout="HideDropdown" tabindex="0">
-            <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-secondary); padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;" @onclick="ToggleDropdown">
+            @if (isAdmin)
+            {
+                <div style="display: flex; align-items: center; gap: 10px; background: var(--bg-secondary); padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border-glass); box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;" @onclick="ToggleDropdown">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">Processed By</span>
                 <div style="display: flex; align-items: center; justify-content: space-between; min-width: 140px; padding: 4px 8px; background-color: var(--bg-secondary); border-radius: 6px; font-weight: 500; color: var(--text-primary); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
@@ -71,16 +73,19 @@
                     }
                 </div>
             }
+            }
         </div>
+        </div>
+
     </div>
 
-    @if (filteredRenewals == null)
+    @if (displayedRenewals == null)
     {
         <div style="padding: 24px;">
             <p>Loading...</p>
         </div>
     }
-    else if (!filteredRenewals.Any())
+    else if (!displayedRenewals.Any())
     {
         <div style="padding: 24px;">
             <p>No renewals recorded yet.</p>
@@ -182,19 +187,18 @@
                     <option value="30">30</option>
                     <option value="50">50</option>
                 </select>
-                <span>Showing @(filteredRenewals.Any() ? ((currentPage - 1) * pageSize) + 1 : 0) to @(Math.Min(currentPage * pageSize, filteredRenewals.Count())) of @(filteredRenewals.Count())</span>
+                <span>Showing @(totalRecords > 0 ? ((currentPage - 1) * pageSize) + 1 : 0) to @(Math.Min(currentPage * pageSize, totalRecords)) of @totalRecords</span>
             </div>
             @if (totalPages > 1)
             {
                 <div style="display: flex; gap: 4px;">
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == 1)" @onclick="() => currentPage--">Prev</button>
+                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == 1)" @onclick="async () => { currentPage--; await LoadRenewalsData(); }">Prev</button>
                     <span style="padding: 4px 8px; font-size: 0.85rem; font-weight: 600;">@currentPage / @totalPages</span>
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == totalPages)" @onclick="() => currentPage++">Next</button>
+                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" disabled="@(currentPage == totalPages)" @onclick="async () => { currentPage++; await LoadRenewalsData(); }">Next</button>
                 </div>
             }
         </div>
     }
-</div>
 
 @if (isDeleteModalVisible && renewalToDelete != null)
 {
@@ -233,18 +237,18 @@
 }
 
 @code {
-    private List<MonthlyPackageHistory>? allRenewals;
-    private List<MonthlyPackageHistory>? filteredRenewals;
+    private List<MonthlyPackageHistory>? displayedRenewals;
+    private int totalRecords = 0;
     
     // Pagination
     private int currentPage = 1;
     private int pageSize = 10;
-    private int totalPages => filteredRenewals == null || !filteredRenewals.Any() ? 1 : (int)Math.Ceiling((double)filteredRenewals.Count() / pageSize);
-    private IEnumerable<MonthlyPackageHistory> displayedRenewals => filteredRenewals?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<MonthlyPackageHistory>();
+    private int totalPages => totalRecords == 0 ? 1 : (int)Math.Ceiling((double)totalRecords / pageSize);
 
-    private void ResetPage()
+    private async Task ResetPage()
     {
         currentPage = 1;
+        await LoadRenewalsData();
     }
 
     private List<string> employees = new();
@@ -256,7 +260,7 @@
         set 
         {
             _searchTerm = value;
-            ApplyFilters();
+            _ = ReloadDataAsync();
         }
     }
     
@@ -267,25 +271,34 @@
         set 
         {
             _selectedEmployee = value;
-            ApplyFilters();
+            _ = ReloadDataAsync();
         }
+    }
+    
+    private async Task ReloadDataAsync()
+    {
+        currentPage = 1;
+        await LoadRenewalsData();
+        await InvokeAsync(StateHasChanged);
     }
     
     private bool isDeleteModalVisible = false;
     private MonthlyPackageHistory? renewalToDelete;
+    private bool isAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadRenewals();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAdmin = authState.User.IsInRole("Admin");
+        await LoadRenewalsData();
     }
     
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
 
-    private async Task LoadRenewals()
+    private async Task LoadRenewalsData()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        bool isAdmin = user.IsInRole("Admin");
         string? userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         var query = DbContext.MonthlyPackageHistories
@@ -297,33 +310,11 @@
         {
             query = query.Where(h => h.CreatedById == userId);
         }
-
-        allRenewals = await query
-            .OrderByDescending(h => h.RenewalDate)
-            .ThenByDescending(h => h.CreatedAt)
-            .Take(500)
-            .ToListAsync();
-            
-        employees = allRenewals
-            .Where(p => !string.IsNullOrEmpty(p.CreatedByName))
-            .Select(p => p.CreatedByName!)
-            .Distinct()
-            .OrderBy(e => e)
-            .ToList();
-
-        if (!isAdmin && employees.Any())
-        {
-            _selectedEmployee = employees.First();
-        }
-
-        ApplyFilters();
-    }
-    
-    private void ApplyFilters()
-    {
-        if (allRenewals == null) return;
         
-        var query = allRenewals.AsQueryable();
+        if (selectedEmployee != "All")
+        {
+            query = query.Where(h => h.CreatedByName == selectedEmployee);
+        }
         
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -333,13 +324,26 @@
                 (h.Customer != null && h.Customer.ConnectionId.ToLower().Contains(lowerSearch))
             );
         }
-        
-        if (selectedEmployee != "All")
+
+        totalRecords = await query.CountAsync();
+
+        displayedRenewals = await query
+            .OrderByDescending(h => h.RenewalDate)
+            .ThenByDescending(h => h.CreatedAt)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+            
+        if (isAdmin && employees.Count == 0)
         {
-            query = query.Where(h => h.CreatedByName == selectedEmployee);
+            var allEmps = await DbContext.MonthlyPackageHistories
+                .Where(p => !p.IsDeleted && !string.IsNullOrEmpty(p.CreatedByName))
+                .Select(p => p.CreatedByName!)
+                .Distinct()
+                .ToListAsync();
+                
+            employees = allEmps.OrderBy(e => e).ToList();
         }
-        
-        filteredRenewals = query.ToList();
     }
 
     private bool isDropdownOpen = false;
@@ -361,7 +365,6 @@
     {
         selectedEmployee = emp;
         isDropdownOpen = false;
-        ApplyFilters();
     }
 
     private void ConfirmReverseRenewal(MonthlyPackageHistory renewal)
@@ -419,7 +422,7 @@
             await DbContext.SaveChangesAsync();
 
             ToastService.ShowSuccess($"Renewal reversed successfully.");
-            await LoadRenewals();
+            await LoadRenewalsData();
         }
         catch (Exception ex)
         {

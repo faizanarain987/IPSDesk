@@ -132,6 +132,10 @@ else
                     Package Expiry Date
                 </span>
                 <div style="font-weight: 500; margin-top: 4px;">@(PackageExpiryDate.HasValue ? PackageExpiryDate.Value.ToString("MMM dd, yyyy") : "N/A")</div>
+                @if (PackageExpiryDate.HasValue)
+                {
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">@PackageExpiryDate.Value.ToString("hh:mm tt")</div>
+                }
             </div>
             <div style="grid-column: 1 / -1;">
                 <span style="color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
